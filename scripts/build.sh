@@ -24,11 +24,17 @@ if [ $param_num -eq 0 ]; then
 
     cd ../../../
 
-    echo "Uncompress vocabulary ..."
-
-    cd Vocabulary
-    tar -xf ORBvoc.txt.tar.gz
-    cd ..
+    if [ -f "Vocabulary/ORBvoc.txt" ]; then
+        echo "Vocabulary/ORBvoc.txt Exist"
+    else
+        echo "Download and Uncompress vocabulary ..."
+        mkdir Vocabulary & cd Vocabulary
+        if [ ! -f "ORBvoc.txt.tar.gz" ]; then
+            wget https://github.com/raulmur/ORB_SLAM2/blob/master/Vocabulary/ORBvoc.txt.tar.gz
+        fi
+        tar -xf ORBvoc.txt.tar.gz
+        cd ..
+    fi
 
     echo "Configuring and building ORB_SLAM2 ..."
 
@@ -63,4 +69,3 @@ elif [ $param_num -ge 2 ]; then
     echo "ERROR: too many parameters!"
     exit 1
 fi
-

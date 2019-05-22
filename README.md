@@ -9,9 +9,11 @@ modified version from [raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2) 
 
 -----
 
+[TOC]
+
 # Dependencies
 
-* OpenCV
+* OpenCV 3
 * Eigen3
 * Pangolin
   ```bash
@@ -19,26 +21,16 @@ modified version from [raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2) 
   cd Pangolin & mkdir build & cd build
   cmake .. & cmake --build .
   ```
-
+* DBoW2 and G2O
+  - Dowload from [ORB_SLAM2/Thirdparty/](https://github.com/raulmur/ORB_SLAM2/tree/master/Thirdparty) and move them to `orbslam2_cg/Thirdparty`
+* ROS (optional)
 
 # Build
 
-* install prerequisites
-  * DBoW2 and g2o
-    - Dowload from [ORB_SLAM2/Thirdparty/](https://github.com/raulmur/ORB_SLAM2/tree/master/Thirdparty) and move them to `orbslam2_cg/Thirdparty`
-  * Vocabulary ORBvoc.txt.tar.gz
-    ```bash
-    git clone https://github.com/cggos/orbslam2_cg.git
-    cd orbslam2_cg
-    mkdir Thirdparty
-    wget https://github.com/raulmur/ORB_SLAM2/blob/master/Vocabulary/ORBvoc.txt.tar.gz
-    ```
-
-* build the project
-  ```bash
-  cd orbslam2_cg/scripts
-  ./build.sh
-  ```
+```bash
+cd orbslam2_cg/scripts
+./build.sh
+```
 
 # Run
 
