@@ -23,6 +23,10 @@ modified version from [raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2) 
   ```
 * DBoW2 and G2O
   - Dowload from [ORB_SLAM2/Thirdparty/](https://github.com/raulmur/ORB_SLAM2/tree/master/Thirdparty) and move them to `orbslam2_cg/Thirdparty`
+    ```
+    cd orbslam2_cg
+    svn checkout https://github.com/raulmur/ORB_SLAM2/trunk/Thirdparty
+    ```
 * ROS (optional)
 
 # Build
