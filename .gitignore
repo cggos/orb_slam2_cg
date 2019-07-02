@@ -22,6 +22,8 @@ Thirdparty/g2o/lib/
 Vocabulary/
 Vocabulary/ORBvoc.txt
 lib/
+ORBvoc.txt
+ORBvoc.txt.tar.gz
 
 Examples/GHC/myslam
 *.mp4
@@ -32,4 +34,5 @@ build/
 .idea/
 *~
 
+.tags
 tags
