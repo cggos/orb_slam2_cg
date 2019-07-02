@@ -30,7 +30,7 @@ if [ $param_num -eq 0 ]; then
         echo "Download and Uncompress vocabulary ..."
         mkdir Vocabulary & cd Vocabulary
         if [ ! -f "ORBvoc.txt.tar.gz" ]; then
-            wget https://github.com/raulmur/ORB_SLAM2/blob/master/Vocabulary/ORBvoc.txt.tar.gz
+            wget https://raw.githubusercontent.com/raulmur/ORB_SLAM2/master/Vocabulary/ORBvoc.txt.tar.gz
         fi
         tar -xf ORBvoc.txt.tar.gz
         cd ..
