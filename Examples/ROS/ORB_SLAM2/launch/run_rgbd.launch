@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <arg name="orbvoc" default="$(find ORB_SLAM2)/../../../Vocabulary/ORBvoc.txt" />
+  <arg name="config" default="$(find ORB_SLAM2)/../../RGBD/TUM1.yaml" />
+
+  <node name="orbslam2_rgbd" pkg="ORB_SLAM2" type="RGBD" args="$(arg orbvoc) $(arg config)">
+    <remap from="/camera/rgb/image_raw"              to="/camera/rgb/image_color" />
+    <remap from="/camera/depth_registered/image_raw" to="/camera/depth/image" />
+  </node>
+
+</launch>
