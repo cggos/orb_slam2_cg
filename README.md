@@ -33,7 +33,12 @@ modified version from [raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2) 
 
 ```bash
 cd orbslam2_cg/scripts
+
+# main project
 ./build.sh
+
+# for ROS
+./buid_ros.sh
 ```
 
 # Run
@@ -41,4 +46,12 @@ cd orbslam2_cg/scripts
 ```bash
 cd orbslam2_cg/scripts
 ./run_<mono_tum>.sh  # modify it before run
+```
+
+## with ROS
+```sh
+cd orbslam2_cg/Examples/ROS/ORB_SLAM2/
+source build/devel/setup.bash
+
+roslaunch ORB_SLAM2 run_<mono>.launch
 ```
