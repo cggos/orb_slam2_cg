@@ -41,6 +41,19 @@ cd orbslam2_cg/scripts
 ./buid_ros.sh
 ```
 
+# Calibration Params
+
+* **Stereo** Config
+  - **ROS Stereo Calibration** and get data from the result  
+    ```sh
+    rosrun camera_calibration cameracalibrator.py \
+        --approximate=0.05 \
+        --size 11x7 \
+        --square 0.036 \
+        left:=/mynteye/left/image_raw \
+        right:=/mynteye/right/image_raw        
+    ```
+
 # Run
 
 ## without ROS
