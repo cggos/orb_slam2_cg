@@ -37,21 +37,31 @@ cd orbslam2_cg/scripts
 # main project
 ./build.sh
 
-# for ROS
+# for ROS, need to execute build.sh first
 ./buid_ros.sh
 ```
 
 # Run
 
+## without ROS
 ```bash
 cd orbslam2_cg/scripts
 ./run_<mono_tum>.sh  # modify it before run
 ```
 
 ## with ROS
+
 ```sh
 cd orbslam2_cg/Examples/ROS/ORB_SLAM2/
 source build/devel/setup.bash
 
 roslaunch ORB_SLAM2 run_<mono>.launch
 ```
+
+* with MYNTEYE-S1030
+  ```sh
+  roslaunch ORB_SLAM2 run_stereo_mynteye_s1030.launch
+  ```
+  <div align=center>
+    <img src="images/stereo_mynteye_s1030.jpg"/>
+  </div>
