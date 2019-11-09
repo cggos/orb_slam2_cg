@@ -39,6 +39,7 @@ public:
     Map* mpMap;
 
     void DrawMapPoints();
+    void DrawOrbLineMapPoints(); // orb_line
     void DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph);
     void DrawCurrentCamera(pangolin::OpenGlMatrix &Twc);
     void SetCurrentCameraPose(const cv::Mat &Tcw);

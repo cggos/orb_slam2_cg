@@ -43,6 +43,12 @@ void Map::AddMapPoint(MapPoint *pMP)
     mspMapPoints.insert(pMP);
 }
 
+void Map::AddLineMapPoints(MapPoint* lMP)
+{
+    unique_lock<mutex> lock(mMutexLineMap);
+    lineMapPoints.insert(lMP);
+}
+
 void Map::EraseMapPoint(MapPoint *pMP)
 {
     unique_lock<mutex> lock(mMutexMap);
@@ -89,6 +95,21 @@ vector<MapPoint*> Map::GetAllMapPoints()
 {
     unique_lock<mutex> lock(mMutexMap);
     return vector<MapPoint*>(mspMapPoints.begin(),mspMapPoints.end());
+}
+
+cv::Mat Map::GetLineMatchImages()
+{
+   return lineMatchImage;
+}
+void Map::setLineMatchImage(cv::Mat _m)
+{
+  lineMatchImage=_m;
+}
+
+vector<MapPoint*> Map::GetAllLineMapPoints()
+{
+    unique_lock<mutex> lock(mMutexLineMap);
+    return vector<MapPoint*>(lineMapPoints.begin(),lineMapPoints.end());
 }
 
 long unsigned int Map::MapPointsInMap()

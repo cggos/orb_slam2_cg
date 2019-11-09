@@ -42,6 +42,7 @@ public:
 
     void AddKeyFrame(KeyFrame* pKF);
     void AddMapPoint(MapPoint* pMP);
+    void AddLineMapPoints(MapPoint* lMP); // orb_line
     void EraseMapPoint(MapPoint* pMP);
     void EraseKeyFrame(KeyFrame* pKF);
     void SetReferenceMapPoints(const std::vector<MapPoint*> &vpMPs);
@@ -50,6 +51,7 @@ public:
 
     std::vector<KeyFrame*> GetAllKeyFrames();
     std::vector<MapPoint*> GetAllMapPoints();
+    std::vector<MapPoint*> GetAllLineMapPoints(); // orb_line
     std::vector<MapPoint*> GetReferenceMapPoints();
 
     long unsigned int MapPointsInMap();
@@ -66,9 +68,14 @@ public:
     // This avoid that two points are created simultaneously in separate threads (id conflict)
     std::mutex mMutexPointCreation;
 
+    cv::Mat GetLineMatchImages(); // orb_line
+    void setLineMatchImage(cv::Mat _m); // orb_line
 protected:
     std::set<MapPoint*> mspMapPoints;
+    std::set<MapPoint*> lineMapPoints; // orb_line
     std::set<KeyFrame*> mspKeyFrames;
+
+    cv::Mat lineMatchImage; // orb_line
 
     std::vector<MapPoint*> mvpReferenceMapPoints;
 
@@ -78,6 +85,8 @@ protected:
     int mnBigChangeIdx;
 
     std::mutex mMutexMap;
+
+    std::mutex mMutexLineMap; // orb_line
 };
 
 } //namespace ORB_SLAM

@@ -70,6 +70,12 @@ MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF
     mnId=nNextId++;
 }
 
+MapPoint::MapPoint(cv::Point3d _startPoint, cv::Point3d _endPoint)
+{
+    startPoint=_startPoint;
+    endPoint=_endPoint;
+}
+
 void MapPoint::SetWorldPos(const cv::Mat &Pos)
 {
     unique_lock<mutex> lock2(mGlobalMutex);

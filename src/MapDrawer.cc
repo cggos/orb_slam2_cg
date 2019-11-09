@@ -80,6 +80,30 @@ void MapDrawer::DrawMapPoints()
     glEnd();
 }
 
+void MapDrawer::DrawOrbLineMapPoints()
+{
+    const vector<MapPoint*> &vpMPs = mpMap->GetAllLineMapPoints();
+
+    if(vpMPs.empty())
+        return;
+
+    //glPointSize(mPointSize);//diameter of the point dot
+    glBegin(GL_LINES);
+    glColor3f(0.6,0.2,0.9);
+
+    for(size_t i=0, iend=vpMPs.size(); i<iend;i++)
+    {
+        // if(vpMPs[i]->isBad() || spRefMPs.count(vpMPs[i]))
+        //     continue;
+        cv::Point3d stPoint=vpMPs[i]->startPoint;
+        cv::Point3d edPoint=vpMPs[i]->endPoint;
+        glVertex3f(stPoint.x,stPoint.y,stPoint.z);
+        glVertex3f(edPoint.x,edPoint.y,edPoint.z);
+    }
+
+    glEnd();
+}
+
 void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
 {
     const float &w = mKeyFrameSize;

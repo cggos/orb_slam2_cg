@@ -69,6 +69,10 @@ target_link_libraries(Mono
 ${LIBS}
 )
 
+# Node for monocular camera with orb-line
+rosbuild_add_executable(MonoLine src/ros_mono_line.cc)
+target_link_libraries(MonoLine ${LIBS})
+
 # Node for monocular camera (Augmented Reality Demo)
 rosbuild_add_executable(MonoAR
 src/AR/ros_mono_ar.cc
