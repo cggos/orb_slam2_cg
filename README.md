@@ -64,16 +64,22 @@ cd orbslam2_cg/scripts
 
 ## with ROS
 
-```sh
-cd orbslam2_cg/Examples/ROS/ORB_SLAM2/
-source build/devel/setup.bash
+* generally
+  ```sh
+  cd orbslam2_cg/Examples/ROS/ORB_SLAM2/
+  source build/devel/setup.bash
 
-roslaunch ORB_SLAM2 run_<mono>.launch
-```
+  roslaunch ORB_SLAM2 run_<mono>.launch
+  ```
+
+* with EuRoC dataset
+  ```sh
+  roslaunch ORB_SLAM2 run_stereo_euroc.launch [rviz:=true]
+  ```
 
 * with MYNTEYE-S1030
   ```sh
-  roslaunch ORB_SLAM2 run_stereo_mynteye_s1030.launch
+  roslaunch ORB_SLAM2 run_stereo_mynteye_s1030.launch [rviz:=true]
   ```
   <div align=center>
     <img src="images/stereo_mynteye_s1030.jpg"/>

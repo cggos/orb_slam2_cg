@@ -24,17 +24,21 @@
 #include<fstream>
 #include<chrono>
 
-#include<ros/ros.h>
+#include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include <nav_msgs/Path.h>
 
 #include<opencv2/core/core.hpp>
 
 #include"../../../include/System.h"
 
 using namespace std;
+
+ros::Publisher path_pub;
+nav_msgs::Path path_msg;
 
 class ImageGrabber
 {
@@ -115,6 +119,8 @@ int main(int argc, char **argv)
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
 
+    path_pub = nh.advertise<nav_msgs::Path>("path", 10);
+
     ros::spin();
 
     // Stop all threads
@@ -155,18 +161,36 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
         return;
     }
 
+    cv::Mat Tcw;
     if(do_rectify)
     {
         cv::Mat imLeft, imRight;
         cv::remap(cv_ptrLeft->image,imLeft,M1l,M2l,cv::INTER_LINEAR);
         cv::remap(cv_ptrRight->image,imRight,M1r,M2r,cv::INTER_LINEAR);
-        mpSLAM->TrackStereo(imLeft,imRight,cv_ptrLeft->header.stamp.toSec());
+        Tcw = mpSLAM->TrackStereo(imLeft,imRight,cv_ptrLeft->header.stamp.toSec());
     }
     else
     {
-        mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
+        Tcw = mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
 
+    // publish the path
+    if(!Tcw.empty()) {
+        cv::Mat Rwc(3,3,CV_32F);
+        cv::Mat twc(3,1,CV_32F);
+        Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
+        twc = -Rwc * Tcw.rowRange(0,3).col(3);
+
+        geometry_msgs::PoseStamped pose_stamped;
+        pose_stamped.header.frame_id = "orb_stereo";
+        pose_stamped.pose.position.x = twc.at<float>(0,0);
+        pose_stamped.pose.position.y = twc.at<float>(1,0);
+        pose_stamped.pose.position.z = twc.at<float>(2,0);
+
+        path_msg.header.frame_id = "orb_stereo";
+        path_msg.poses.push_back(pose_stamped);
+        path_pub.publish(path_msg);
+    }
 }
 
 
