@@ -40,6 +40,15 @@ endif()
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 
+find_package(G2O REQUIRED)
+if(G2O_FOUND)
+   include_directories(${G2O_INCLUDE_DIRS})
+   # link_directories(/opt/g2o/lib)
+endif()
+set(G2O_LIBRARIES g2o_core g2o_stuff g2o_types_sba g2o_types_sim3 g2o_solver_csparse g2o_csparse_extension)
+
+find_package(DBoW2 REQUIRED)
+
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
@@ -76,8 +85,8 @@ target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
-${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
-${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+${G2O_LIBRARIES}
+${DBoW2_LIBRARIES}
 )
 
 # Build examples

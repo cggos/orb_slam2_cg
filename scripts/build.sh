@@ -5,29 +5,6 @@ cd ..
 param_num=$#
 
 if [ $param_num -eq 0 ]; then
-    echo "Configuring and building Thirdparty/DBoW2 ..."
-
-    cd Thirdparty/DBoW2
-    if [ ! -d "build" ]; then
-        mkdir build
-    fi
-    cd build
-    cmake .. -DCMAKE_BUILD_TYPE=Release
-    make -j3
-
-    cd ../../g2o
-
-    echo "Configuring and building Thirdparty/g2o ..."
-
-    if [ ! -d "build" ]; then
-        mkdir build
-    fi
-    cd build
-    cmake .. -DCMAKE_BUILD_TYPE=Release
-    make -j3
-
-    cd ../../../
-
     if [ -f "Vocabulary/ORBvoc.txt" ]; then
         echo "Vocabulary/ORBvoc.txt Exist"
     else
@@ -56,14 +33,6 @@ if [ $param_num -eq 0 ]; then
 elif [ $param_num -eq 1 ]; then
     if [ "$1" = "clean" ]
     then
-        echo "Cleaning build directories..."
-        cd Thirdparty/DBoW2
-        echo "Deleting `pwd`/build"
-        rm -rf build
-        cd ../g2o
-        echo "Deleting `pwd`/build"
-        rm -rf build
-        cd ../..
         echo "Deleting `pwd`/build"
         rm -rf build
     else

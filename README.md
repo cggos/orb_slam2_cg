@@ -15,18 +15,23 @@ modified version from [raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2) 
 
 * OpenCV 3
 * Eigen3
+  ```sh
+  sudo apt install libeigen3-dev
+  ```
 * Pangolin
   ```bash
   git clone https://github.com/stevenlovegrove/Pangolin.git
   cd Pangolin & mkdir build & cd build
   cmake .. & cmake --build .
   ```
-* DBoW2 and G2O
-  - Dowload from [ORB_SLAM2/Thirdparty/](https://github.com/raulmur/ORB_SLAM2/tree/master/Thirdparty) and move them to `orbslam2_cg/Thirdparty`
-    ```
-    cd orbslam2_cg
-    svn checkout https://github.com/raulmur/ORB_SLAM2/trunk/Thirdparty
-    ```
+* G2O
+  ```sh
+  git clone https://github.com/RainerKuemmerle/g2o
+  ```
+* DBoW2 
+  ```sh
+  git clone https://github.com/cggos/DBoW2
+  ```
 * ROS (optional)
 
 # Build
