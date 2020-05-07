@@ -1,26 +1,19 @@
 CMakeLists.txt.user
-Examples/Monocular/mono_euroc
-Examples/Monocular/mono_kitti
-Examples/Monocular/mono_tum
-Examples/RGB-D/rgbd_tum
-Examples/ROS/ORB_SLAM2/CMakeLists.txt.user
-Examples/ROS/ORB_SLAM2/Mono
-Examples/ROS/ORB_SLAM2/MonoLine
-Examples/ROS/ORB_SLAM2/MonoAR
-Examples/ROS/ORB_SLAM2/RGBD
-Examples/ROS/ORB_SLAM2/Stereo
-Examples/ROS/ORB_SLAM2/build/
-Examples/Stereo/stereo_euroc
-Examples/Stereo/stereo_kitti
+orbslam2/Examples/GHC/myslam
+orbslam2/Examples/Monocular/mono_euroc
+orbslam2/Examples/Monocular/mono_kitti
+orbslam2/Examples/Monocular/mono_tum
+orbslam2/Examples/RGB-D/rgbd_tum
+orbslam2/Examples/Stereo/stereo_euroc
+orbslam2/Examples/Stereo/stereo_kitti
 KeyFrameTrajectory.txt
 CameraTrajectory.txt
 Vocabulary/
-Vocabulary/ORBvoc.txt
 lib/
+bin/
 ORBvoc.txt
 ORBvoc.txt.tar.gz
 
-Examples/GHC/myslam
 *.mp4
 
 build/

@@ -36,56 +36,50 @@ modified version from [raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2) 
 
 # Build
 
-```bash
-cd orbslam2_cg/scripts
+* with ROS
+  ```sh
+  mkdir -p ws_orbslam/src & cd ws_orbslam/src
+  git clone https://github.com/cggos/orbslam2_cg.git
+  cd ..
+  catkin_make -j1
+  ```
 
-# main project
-./build.sh
+* without ROS
+  ```bash
+  cd orbslam2_cg/orbslam2/scripts
 
-# for ROS, need to execute build.sh first
-./buid_ros.sh
-```
+  ./build.sh
+  ```
 
 # Calibration Params
 
-* **Stereo** Config
-  - **ROS Stereo Calibration** and get data from the result  
-    ```sh
-    rosrun camera_calibration cameracalibrator.py \
-        --approximate=0.05 \
-        --size 11x7 \
-        --square 0.036 \
-        left:=/mynteye/left/image_raw \
-        right:=/mynteye/right/image_raw        
-    ```
+* Stereo Config: **ROS Stereo Calibration** and get data from the result  
+  ```sh
+  rosrun camera_calibration cameracalibrator.py \
+      --approximate=0.05 \
+      --size 11x7 \
+      --square 0.036 \
+      left:=/mynteye/left/image_raw \
+      right:=/mynteye/right/image_raw        
+  ```
 
 # Run
 
-## without ROS
-```bash
-cd orbslam2_cg/scripts
-./run_<mono_tum>.sh  # modify it before run
-```
+* without ROS
+  ```bash
+  cd orbslam2_cg/orbslam2/scripts
+  ./run_<mono_tum>.sh  # modify it before run
+  ```
 
-## with ROS
-
-* generally
+* with ROS
   ```sh
-  cd orbslam2_cg/Examples/ROS/ORB_SLAM2/
-  source build/devel/setup.bash
-
   roslaunch ORB_SLAM2 run_<mono>.launch
-  ```
 
-* with EuRoC dataset
-  ```sh
   roslaunch ORB_SLAM2 run_stereo_euroc.launch [rviz:=true]
-  ```
 
-* with MYNTEYE-S1030
-  ```sh
   roslaunch ORB_SLAM2 run_stereo_mynteye_s1030.launch [rviz:=true]
   ```
+
   <div align=center>
     <img src="images/stereo_mynteye_s1030.jpg"/>
   </div>

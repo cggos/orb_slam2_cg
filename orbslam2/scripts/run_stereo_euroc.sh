@@ -7,7 +7,7 @@ if [ $param_num -ne 1 ]; then
 else
     cd ..
     dataset_dir="$1"
-    ./Examples/Stereo/stereo_euroc \
+    ./bin/stereo_euroc \
     Vocabulary/ORBvoc.txt \
     Examples/Stereo/EuRoC.yaml \
     $dataset_dir/MH_01_easy/mav0/cam0/data \

@@ -47,13 +47,13 @@
 
 #include <image_transport/image_transport.h>
 
-#include"../../../include/System.h"
-#include "../../../include/KeyFrame.h"
-#include "../../../include/MapPoint.h"
-#include "../../../include/Converter.h"
-#include "../../../include/Map.h"
-#include "../../../include/OrbLine.h"
-#include "../../../include/MapPoint.h"
+#include "System.h"
+#include "KeyFrame.h"
+#include "MapPoint.h"
+#include "Converter.h"
+#include "Map.h"
+#include "OrbLine.h"
+#include "MapPoint.h"
 
 using namespace std;
 
