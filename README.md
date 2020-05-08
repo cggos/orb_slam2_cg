@@ -33,6 +33,13 @@ modified version from [raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2) 
   git clone https://github.com/cggos/DBoW2
   ```
 * ROS (optional)
+  
+* Vocabulary ORBvoc.txt
+  ```sh
+  cd orbslam2/Vocabulary
+  wget https://raw.githubusercontent.com/raulmur/ORB_SLAM2/master/Vocabulary/ORBvoc.txt.tar.gz
+  tar -xf ORBvoc.txt.tar.gz
+  ```
 
 # Build
 
@@ -45,10 +52,10 @@ modified version from [raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2) 
   ```
 
 * without ROS
-  ```bash
-  cd orbslam2_cg/orbslam2/scripts
-
-  ./build.sh
+  ```sh
+  cd orbslam2_cg/orbslam2
+  mkdir build & cd build
+  cmake .. & make -j1
   ```
 
 # Calibration Params

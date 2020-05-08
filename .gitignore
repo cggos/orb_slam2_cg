@@ -8,7 +8,6 @@ orbslam2/Examples/Stereo/stereo_euroc
 orbslam2/Examples/Stereo/stereo_kitti
 KeyFrameTrajectory.txt
 CameraTrajectory.txt
-Vocabulary/
 lib/
 bin/
 ORBvoc.txt
