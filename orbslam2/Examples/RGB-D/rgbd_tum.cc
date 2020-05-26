@@ -79,7 +79,7 @@ int main(int argc, char **argv)
         // Read image and depthmap from file
         imRGB = cv::imread(string(argv[3])+"/"+vstrImageFilenamesRGB[ni],CV_LOAD_IMAGE_UNCHANGED);
         imD   = cv::imread(string(argv[3])+"/"+vstrImageFilenamesD[ni],  CV_LOAD_IMAGE_UNCHANGED);
-        double tframe = vTimestamps[ni];
+        double tframe = vTimestamps[ni]; // cv::getTickCount()
 
         if(imRGB.empty())
         {
