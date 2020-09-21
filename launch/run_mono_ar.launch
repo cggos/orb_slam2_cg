@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+
+<launch>
+  
+  <arg name="orbvoc" default="$(find orbslam2_cg)/orbslam2/Vocabulary/ORBvoc.txt" />
+  <arg name="config" default="$(find orbslam2_cg)/orbslam2/Examples/Monocular/EuRoC.yaml" />
+
+  <node name="orbslam2_mono" pkg="orbslam2_cg" type="MonoAR" args="$(arg orbvoc) $(arg config)" output="screen">
+    <remap from="/camera/image_raw" to="/cam0/image_raw"/>
+  </node>
+
+  <arg name="bag_file" default="/home/cg/dev_sdb/datasets/ETH_ASL_Datasets/EuRoC_MAV/V1_01_easy.bag"/>
+  <node pkg="rosbag" type="play" name="playback" args="-s 0 $(arg bag_file)" output="log"/>
+
+</launch>

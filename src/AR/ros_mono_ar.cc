@@ -149,6 +149,9 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         return;
     }
     cv::Mat im = cv_ptr->image.clone();
+    if(im.channels() == 1) {
+        cv::cvtColor(im, im, cv::COLOR_GRAY2RGB);
+    }
     cv::Mat imu;
     cv::Mat Tcw = mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
     int state = mpSLAM->GetTrackingState();
