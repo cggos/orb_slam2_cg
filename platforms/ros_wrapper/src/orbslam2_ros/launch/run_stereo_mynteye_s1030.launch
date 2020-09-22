@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <arg name="orbvoc" default="$(find orbslam2_ros)/../../../../Vocabulary/ORBvoc.txt" />
+  <arg name="config" default="$(find orbslam2_ros)/../../../app/Stereo/MYNTEYE-S1030.yaml" />
+
+  <node name="orbslam2_rgbd" pkg="orbslam2_ros" type="Stereo" args="$(arg orbvoc) $(arg config) true">
+    <remap from="/camera/left/image_raw"  to="/mynteye/left/image_raw" />
+    <remap from="/camera/right/image_raw" to="/mynteye/right/image_raw" />
+  </node>
+
+</launch>

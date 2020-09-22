@@ -23,3 +23,7 @@ build/
 
 .tags*
 tags
+
+devel/
+.catkin_workspace
+platforms/ros_wrapper/src/CMakeLists.txt

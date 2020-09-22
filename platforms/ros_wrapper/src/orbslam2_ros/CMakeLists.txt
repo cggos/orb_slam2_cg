@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(orbslam2_cg)
+project(orbslam2_ros)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
+add_definitions(-w)
 
-add_subdirectory(orbslam2)
-
-LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/orbslam2/cmake_modules)
+# orbslam2 core
+set(PROJECT_ROOT "../../../../")
+add_subdirectory(${PROJECT_ROOT}/orbslam2 orbslam2.core)
+include_directories(${PROJECT_ROOT}/orbslam2/include)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -26,24 +28,6 @@ find_package(catkin REQUIRED COMPONENTS
 
 # System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
-
-find_package(OpenCV 3.0 QUIET)
-if(NOT OpenCV_FOUND)
-   find_package(OpenCV 2.4.3 QUIET)
-   if(NOT OpenCV_FOUND)
-      message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
-   endif()
-endif()
-
-find_package(Eigen3 REQUIRED) # 3.1.0
-find_package(Pangolin REQUIRED)
-
-find_package(G2O REQUIRED)
-if(G2O_FOUND)
-   include_directories(${G2O_INCLUDE_DIR})
-   link_directories($ENV{G2O_ROOT}/lib)
-   set(G2O_LIBRARIES g2o_core g2o_stuff g2o_types_sba g2o_types_sim3 g2o_solver_csparse g2o_csparse_extension)
-endif()
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -141,22 +125,9 @@ catkin_package(
 ## Build ##
 ###########
 
-include_directories(
-  include
-  orbslam2/include
-  ${Pangolin_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories(include ${catkin_INCLUDE_DIRS})
 
-set(LIBS
-  ${OpenCV_LIBS}
-  ${EIGEN3_LIBS}
-  ${Pangolin_LIBRARIES}
-  ${G2O_LIBRARIES}
-  orbslam2
-  -lboost_system
-  ${catkin_LIBRARIES}
-)
+set(LIBS orbslam2_core -lboost_system ${catkin_LIBRARIES})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context

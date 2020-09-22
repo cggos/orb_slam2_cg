@@ -45,15 +45,13 @@ modified version from [raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2) 
 
 * with ROS
   ```sh
-  mkdir -p ws_orbslam/src & cd ws_orbslam/src
-  git clone https://github.com/cggos/orbslam2_cg.git
-  cd ..
+  cd orbslam2_cg/platforms/ros_wrapper
   catkin_make -j1
   ```
 
 * without ROS
   ```sh
-  cd orbslam2_cg/orbslam2
+  cd orbslam2_cg/platforms/app
   mkdir build & cd build
   cmake .. & make -j1
   ```
@@ -74,19 +72,19 @@ modified version from [raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2) 
 
 * without ROS
   ```bash
-  cd orbslam2_cg/orbslam2/scripts
-  ./run_<mono_tum>.sh  # modify it before run
+  cd orbslam2_cg/platforms/app/build
+  ../scripts/run_<mono_tum>.sh  # modify it before run
   ```
 
 * with ROS
   ```sh
-  roslaunch ORB_SLAM2 run_<mono>.launch
+  roslaunch orbslam2_ros run_<mono>.launch
 
-  roslaunch ORB_SLAM2 run_stereo_euroc.launch [rviz:=true]
+  roslaunch orbslam2_ros run_stereo_euroc.launch [rviz:=true]
 
-  roslaunch ORB_SLAM2 run_stereo_mynteye_s1030.launch [rviz:=true]
+  roslaunch orbslam2_ros run_stereo_mynteye_s1030.launch
   ```
 
-  <div align=center>
+  <p align="center">
     <img src="images/stereo_mynteye_s1030.jpg"/>
-  </div>
+  </p>

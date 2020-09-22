@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+
+<launch>
+  
+  <arg name="orbvoc" default="$(find orbslam2_ros)/../../../../Vocabulary/ORBvoc.txt" />
+  <arg name="config" default="$(find orbslam2_ros)/../../../app/Monocular/TUM1.yaml" />
+
+  <node name="orbslam2_mono" pkg="orbslam2_ros" type="Mono" args="$(arg orbvoc) $(arg config)">
+    <remap from="/camera/image_raw" to="/camera/rgb/image_color" />
+  </node>
+
+</launch>
