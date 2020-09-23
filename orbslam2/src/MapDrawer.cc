@@ -200,6 +200,28 @@ void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
     }
 }
 
+void MapDrawer::DrawCurrentCamera(const cv::Mat &M)
+{
+	const float &w = mCameraSize;
+	const float h = w * 0.75;
+	const float z = w * 0.6;
+
+	glPushMatrix();
+	glMultMatrixf(M.ptr<GLfloat>(0));
+
+	glLineWidth(mCameraLineWidth);
+	glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
+	GLfloat vertexArray[] = { 0, 0, 0, w, h, z, 0, 0, 0, w, -h, z, 0, 0, 0, -w,
+			-h, z, 0, 0, 0, -w, h, z, w, h, z, w, -h, z, -w, h, z, -w, -h, z,
+			-w, h, z, w, h, z, -w, -h, z, w, -h, z, };
+	glVertexPointer(3, GL_FLOAT, 0, vertexArray);
+	glDrawArrays(GL_LINES, 0, 16);
+	glPopMatrix();
+
+	glDisableClientState (GL_VERTEX_ARRAY);
+	glDisable (GL_COLOR_MATERIAL);
+} 
+
 void MapDrawer::DrawCurrentCamera(pangolin::OpenGlMatrix &Twc)
 {
     const float &w = mCameraSize;

@@ -41,6 +41,7 @@ public:
     void DrawMapPoints();
     void DrawOrbLineMapPoints(); // orb_line
     void DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph);
+    void DrawCurrentCamera(const cv::Mat &M);
     void DrawCurrentCamera(pangolin::OpenGlMatrix &Twc);
     void SetCurrentCameraPose(const cv::Mat &Tcw);
     void SetReferenceKeyFrame(KeyFrame *pKF);
