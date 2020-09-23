@@ -28,6 +28,9 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
 
+find_package(Eigen3 3.1.0 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
 #set( OpenCV_DIR "/opt/opencv_320_r/share/OpenCV" )
 find_package(OpenCV 3.0 QUIET)
 if(NOT OpenCV_FOUND)
@@ -37,9 +40,7 @@ if(NOT OpenCV_FOUND)
    endif()
 endif()
 include_directories(${OpenCV_INCLUDE_DIRS})
-
-find_package(Eigen3 3.1.0 REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIR})
+list(APPEND LIBS ${OpenCV_LIBS})
 
 find_package(G2O REQUIRED)
 if(G2O_FOUND)
@@ -47,13 +48,16 @@ if(G2O_FOUND)
    link_directories($ENV{G2O_ROOT}/lib)
    set(G2O_LIBRARIES g2o_core g2o_stuff g2o_types_sba g2o_types_sim3 g2o_solver_csparse g2o_csparse_extension)
 endif()
+list(APPEND LIBS ${G2O_LIBRARIES})
 
 find_package(DBoW2 REQUIRED)
+list(APPEND LIBS ${DBoW2_LIBRARIES})
 
 find_package(Pangolin REQUIRED)
 if(Pangolin_FOUND)
    include_directories(${Pangolin_INCLUDE_DIRS})
 endif()
+list(APPEND LIBS ${Pangolin_LIBRARIES})
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
@@ -81,13 +85,6 @@ add_library(${PROJECT_NAME} SHARED
    src/Viewer.cc
    src/OrbLine.cc
 )
-
-target_link_libraries(${PROJECT_NAME}
-   ${OpenCV_LIBS}
-   ${EIGEN3_LIBS}
-   ${Pangolin_LIBRARIES}
-   ${G2O_LIBRARIES}
-   ${DBoW2_LIBRARIES}
-)
+target_link_libraries(${PROJECT_NAME} ${LIBS})
 
 
