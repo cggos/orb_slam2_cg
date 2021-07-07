@@ -30,14 +30,17 @@
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <nav_msgs/Path.h>
+#include <nav_msgs/Odometry.h>
 
+#include <Eigen/Core>
 #include <opencv2/core/core.hpp>
+#include <opencv2/core/eigen.hpp>
 
 #include "System.h"
 
 using namespace std;
 
-ros::Publisher path_pub;
+ros::Publisher path_pub, odom_pub;
 nav_msgs::Path path_msg;
 
 class ImageGrabber
@@ -119,7 +122,8 @@ int main(int argc, char **argv)
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
 
-    path_pub = nh.advertise<nav_msgs::Path>("path", 10);
+    path_pub = nh.advertise<nav_msgs::Path>("path_orbslam", 10);
+    odom_pub = nh.advertise<nav_msgs::Odometry>("odom_orbslam", 10);
 
     ros::spin();
 
@@ -181,15 +185,41 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
         Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
         twc = -Rwc * Tcw.rowRange(0,3).col(3);
 
+        Eigen::Matrix3f R;
+        cv::cv2eigen(Rwc, R);
+        Eigen::Quaternionf q(R);  
+
         geometry_msgs::PoseStamped pose_stamped;
-        pose_stamped.header.frame_id = "orb_stereo";
+        pose_stamped.header.frame_id = "global";
+        pose_stamped.header.stamp = msgLeft->header.stamp;
         pose_stamped.pose.position.x = twc.at<float>(0,0);
         pose_stamped.pose.position.y = twc.at<float>(1,0);
         pose_stamped.pose.position.z = twc.at<float>(2,0);
+        pose_stamped.pose.orientation.w = q.w();
+        pose_stamped.pose.orientation.x = q.x();
+        pose_stamped.pose.orientation.y = q.y();
+        pose_stamped.pose.orientation.z = q.z();
 
-        path_msg.header.frame_id = "orb_stereo";
+        path_msg.header = pose_stamped.header;
         path_msg.poses.push_back(pose_stamped);
         path_pub.publish(path_msg);
+
+        nav_msgs::Odometry odom_msg;
+        odom_msg.header = pose_stamped.header;
+        odom_msg.pose.pose = pose_stamped.pose;
+        const double sigma_pv = 0.005;
+        const double kDegreeToRadian = M_PI / 180.;
+        const double sigma_rp = 0.5 * kDegreeToRadian;
+        const double sigma_yaw = 0.5 * kDegreeToRadian;
+        Eigen::Matrix<double, 6, 6> cov;
+        cov.setZero();
+        cov.block<3,3>(0,0) = Eigen::Matrix3d::Identity() * sigma_pv * sigma_pv;
+        cov.block<2,2>(3,3) = Eigen::Matrix2d::Identity() * sigma_rp * sigma_rp;
+        cov(5,5) = sigma_yaw * sigma_yaw;
+        for (int i = 0; i < 6; ++i)
+            for (int j = 0; j < 6; ++j)
+                odom_msg.pose.covariance[6 * i + j] = cov(i, j);
+        odom_pub.publish(odom_msg);     
     }
 }
 
