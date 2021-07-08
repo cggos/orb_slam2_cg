@@ -204,18 +204,21 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
         path_msg.poses.push_back(pose_stamped);
         path_pub.publish(path_msg);
 
-        nav_msgs::Odometry odom_msg;
-        odom_msg.header = pose_stamped.header;
-        odom_msg.pose.pose = pose_stamped.pose;
-        const double sigma_pv = 0.005;
         const double kDegreeToRadian = M_PI / 180.;
+        // for EuROC dataset
+        const double sigma_pv = 0.001;
         const double sigma_rp = 0.5 * kDegreeToRadian;
         const double sigma_yaw = 0.5 * kDegreeToRadian;
+
         Eigen::Matrix<double, 6, 6> cov;
         cov.setZero();
         cov.block<3,3>(0,0) = Eigen::Matrix3d::Identity() * sigma_pv * sigma_pv;
         cov.block<2,2>(3,3) = Eigen::Matrix2d::Identity() * sigma_rp * sigma_rp;
         cov(5,5) = sigma_yaw * sigma_yaw;
+
+        nav_msgs::Odometry odom_msg;
+        odom_msg.header = pose_stamped.header;
+        odom_msg.pose.pose = pose_stamped.pose;
         for (int i = 0; i < 6; ++i)
             for (int j = 0; j < 6; ++j)
                 odom_msg.pose.covariance[6 * i + j] = cov(i, j);

@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 
 <launch>
-
   <arg name="rviz" default="false"/>
+  <arg name="bag" default="true"/>
+  <arg name="bagfile" default="/mnt/win_dir/shared_cg/UbuntuCG/datasets/euroc/V1_01_easy.bag"/>
 
   <group if="$(arg rviz)">
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find orbslam2_ros)/rviz/orbslam.rviz"/>
@@ -11,9 +12,14 @@
   <arg name="orbvoc" default="$(find orbslam2_ros)/../../../../Vocabulary/ORBvoc.txt" />
   <arg name="config" default="$(find orbslam2_ros)/../../../app/Stereo/EuRoC.yaml" />
 
-  <node name="orbslam2_rgbd" pkg="orbslam2_ros" type="Stereo" args="$(arg orbvoc) $(arg config) true">
+  <node name="orbslam2_rgbd" pkg="orbslam2_ros" type="Stereo" args="$(arg orbvoc) $(arg config) true" output="screen">
     <remap from="/camera/left/image_raw"  to="/cam0/image_raw" />
     <remap from="/camera/right/image_raw" to="/cam1/image_raw" />
   </node>
+
+  <group if="$(arg bag)">
+      <node name="bagplay" pkg="rosbag" type="play" args="-s 0 $(arg bagfile)" output="log">
+      </node>
+  </group>  
 
 </launch>
