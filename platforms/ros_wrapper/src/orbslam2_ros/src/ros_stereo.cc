@@ -30,7 +30,7 @@
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <nav_msgs/Path.h>
-#include <nav_msgs/Odometry.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 
 #include <Eigen/Core>
 #include <opencv2/core/core.hpp>
@@ -40,7 +40,7 @@
 
 using namespace std;
 
-ros::Publisher path_pub, odom_pub;
+ros::Publisher path_pub, pose_pub;
 nav_msgs::Path path_msg;
 
 class ImageGrabber
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
 
     path_pub = nh.advertise<nav_msgs::Path>("path_orbslam", 10);
-    odom_pub = nh.advertise<nav_msgs::Odometry>("odom_orbslam", 10);
+    pose_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("pose_orbslam", 10);
 
     ros::spin();
 
@@ -199,7 +199,6 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
         pose_stamped.pose.orientation.x = q.x();
         pose_stamped.pose.orientation.y = q.y();
         pose_stamped.pose.orientation.z = q.z();
-
         path_msg.header = pose_stamped.header;
         path_msg.poses.push_back(pose_stamped);
         path_pub.publish(path_msg);
@@ -216,13 +215,13 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
         cov.block<2,2>(3,3) = Eigen::Matrix2d::Identity() * sigma_rp * sigma_rp;
         cov(5,5) = sigma_yaw * sigma_yaw;
 
-        nav_msgs::Odometry odom_msg;
-        odom_msg.header = pose_stamped.header;
-        odom_msg.pose.pose = pose_stamped.pose;
+        geometry_msgs::PoseWithCovarianceStamped pose_cov_stamped;
+        pose_cov_stamped.header = pose_stamped.header;
+        pose_cov_stamped.pose.pose = pose_stamped.pose;
         for (int i = 0; i < 6; ++i)
             for (int j = 0; j < 6; ++j)
-                odom_msg.pose.covariance[6 * i + j] = cov(i, j);
-        odom_pub.publish(odom_msg);     
+                pose_cov_stamped.pose.covariance[6 * i + j] = cov(i, j);
+        pose_pub.publish(pose_cov_stamped);
     }
 }
 
