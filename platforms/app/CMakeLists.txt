@@ -8,6 +8,7 @@ add_definitions(-w)
 set(PROJECT_ROOT "../../")
 add_subdirectory(${PROJECT_ROOT}/orbslam2 orbslam2.core)
 include_directories(${PROJECT_ROOT}/orbslam2/include)
+include_directories(${PROJECT_ROOT}/Thirdparty/g2o)
 
 # set(CMAKE_CXX_STANDARD 11)
 # add_compile_options(-std=c++11)

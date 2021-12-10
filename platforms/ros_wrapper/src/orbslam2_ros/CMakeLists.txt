@@ -9,6 +9,7 @@ add_definitions(-w)
 set(PROJECT_ROOT "../../../../")
 add_subdirectory(${PROJECT_ROOT}/orbslam2 orbslam2.core)
 include_directories(${PROJECT_ROOT}/orbslam2/include)
+include_directories(${PROJECT_ROOT}/Thirdparty/g2o)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)

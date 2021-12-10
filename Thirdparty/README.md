@@ -1,0 +1,1 @@
+svn checkout https://github.com/raulmur/ORB_SLAM2/tree/master/Thirdparty/g2o
