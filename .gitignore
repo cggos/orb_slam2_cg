@@ -27,3 +27,7 @@ tags
 devel/
 .catkin_workspace
 platforms/ros_wrapper/src/CMakeLists.txt
+
+.catkin_tools/
+logs/
+g2o/
