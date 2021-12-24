@@ -35,7 +35,10 @@ class KeyFrame;
 class Map;
 class Frame;
 
-
+/**
+ * @brief 地图点可以通过关键帧来构造，也可以通过普通帧构造；普通帧构造的地图点只是临时被Tracking用来追踪的
+ * 
+ */
 class MapPoint
 {
 public:
@@ -69,6 +72,14 @@ public:
 
     void IncreaseVisible(int n=1);
     void IncreaseFound(int n=1);
+    /**
+     * @brief Get the Found Ratio object
+     * 
+     * @details 跟踪到该 MapPoint 的 Frame 数相比预计可观测到该 MapPoint 的 Frame 数的比例;
+     *          返回值低 表示该地图点在很多关键帧的视野内，但是没有匹配上很多的特征点
+     * 
+     * @return float 
+     */
     float GetFoundRatio();
     inline int GetFound(){
         return mnFound;
@@ -82,14 +93,24 @@ public:
 
     float GetMinDistanceInvariance();
     float GetMaxDistanceInvariance();
+
+    /**
+     * @brief 由当前特征点的距离，推测所在的层级
+     * 
+     * @param currentDist 
+     * @param pKF 
+     * @return int 
+     */
     int PredictScale(const float &currentDist, KeyFrame*pKF);
     int PredictScale(const float &currentDist, Frame* pF);
 
 public:
-    long unsigned int mnId;
+    long unsigned int mnId; // Global ID for MapPoint
     static long unsigned int nNextId;
-    long int mnFirstKFid;
-    long int mnFirstFrame;
+    
+    long int mnFirstKFid;   // 创建该MapPoint的关键帧ID
+    long int mnFirstFrame;  // 创建该MapPoint的帧ID（每一关键帧有一个帧ID）
+
     int nObs;
 
     // Variables used by the tracking
@@ -128,9 +149,12 @@ protected:
      cv::Mat mNormalVector;
 
      // Best descriptor to fast matching
+     // 每个3D点也有一个descriptor
+     // 如果MapPoint与很多帧图像特征点对应，那么距离其它描述子的平均距离最小的描述子是最佳描述子
+     // MapPoint只与一帧的图像特征点对应（由frame来构造时），那么这个特征点的描述子就是该3D点的描述子
      cv::Mat mDescriptor;
 
-     // Reference KeyFrame
+     // Reference KeyFrame, 通常情况下是创建该MapPoint的那个关键帧
      KeyFrame* mpRefKF;
 
      // Tracking counters

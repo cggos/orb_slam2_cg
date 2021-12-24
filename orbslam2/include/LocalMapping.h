@@ -78,7 +78,18 @@ protected:
     void ProcessNewKeyFrame();
     void CreateNewMapPoints();
 
+    /**
+     * @brief 剔除当前帧地图点
+     * 
+     * @details 为了保存地图点，必须在创建该地图点的需要满足下面三个条件的约束，才能真正被保存，这样才能保证可跟踪且不容易在三角化时出现较大误差
+     *      1) 已经是坏点的 MapPoints 直接从检查链表中删除
+     *      2) 要求跟踪到该 MapPoint 的 Frame 数相比预计可观测到该 MapPoint 的 Frame 数的比例需大于 25%
+     *      3) 如果一个地图点被构建，它必须被超过三个关键帧观察到（单目时为 2 个）
+     *      4) 从建立该点开始，已经过了 3 个关键帧而没有被剔除，则认为是质量高的点，因此没有 SetBadFlag()，仅从队列中删除，放弃继续对该 MapPoint 的检测
+     * 
+     */
     void MapPointCulling();
+    
     void SearchInNeighbors();
 
     void KeyFrameCulling();

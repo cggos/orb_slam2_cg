@@ -377,6 +377,40 @@ void System::SaveTrajectoryTUM(const string &filename)
     }
     f.close();
     cout << endl << "trajectory saved!" << endl;
+
+
+    std::ofstream of_cov_graph;
+    of_cov_graph.open("cov_graph.dot");
+    of_cov_graph << "graph {" << std::endl;
+    for(size_t i=0; i<vpKFs.size(); i++) {
+        // Covisibility Graph
+        const vector<KeyFrame*> vCovKFs = vpKFs[i]->GetCovisiblesByWeight(100);
+        if(!vCovKFs.empty())
+        {
+            for(vector<KeyFrame*>::const_iterator vit=vCovKFs.begin(), vend=vCovKFs.end(); vit!=vend; vit++)
+            {
+                if((*vit)->mnId<vpKFs[i]->mnId)
+                    continue;
+                of_cov_graph << "    " << vpKFs[i]->mnId << " -- " << (*vit)->mnId << ";" << std::endl;
+            }
+        }
+
+        // // Spanning tree
+        // KeyFrame* pParent = vpKFs[i]->GetParent();
+        // if(pParent)
+        // {
+        // }
+
+        // // Loops
+        // set<KeyFrame*> sLoopKFs = vpKFs[i]->GetLoopEdges();
+        // for(set<KeyFrame*>::iterator sit=sLoopKFs.begin(), send=sLoopKFs.end(); sit!=send; sit++)
+        // {
+        //     if((*sit)->mnId<vpKFs[i]->mnId)
+        //         continue;
+        // }
+    }
+    of_cov_graph << "}" << std::endl;
+    of_cov_graph.close();
 }
 
 

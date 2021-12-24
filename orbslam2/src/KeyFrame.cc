@@ -117,11 +117,11 @@ void KeyFrame::UpdateBestCovisibles() {
     for (map<KeyFrame *, int>::iterator mit = mConnectedKeyFrameWeights.begin(), mend = mConnectedKeyFrameWeights.end(); mit != mend; mit++)
         vPairs.push_back(make_pair(mit->second, mit->first));
 
-    sort(vPairs.begin(), vPairs.end());
+    sort(vPairs.begin(), vPairs.end());  // 按照权重进行排序，默认按升序
     list<KeyFrame *> lKFs;
     list<int> lWs;
     for (size_t i = 0, iend = vPairs.size(); i < iend; i++) {
-        lKFs.push_front(vPairs[i].second);
+        lKFs.push_front(vPairs[i].second); // push_front 相当于 将升序改为降序
         lWs.push_front(vPairs[i].first);
     }
 
@@ -396,6 +396,7 @@ void KeyFrame::SetBadFlag() {
     for (size_t i = 0; i < mvpMapPoints.size(); i++)
         if (mvpMapPoints[i])
             mvpMapPoints[i]->EraseObservation(this);
+
     {
         unique_lock<mutex> lock(mMutexConnections);
         unique_lock<mutex> lock1(mMutexFeatures);

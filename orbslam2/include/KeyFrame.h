@@ -60,6 +60,15 @@ public:
     // Covisibility graph functions
     void AddConnection(KeyFrame* pKF, const int &weight);
     void EraseConnection(KeyFrame* pKF);
+    /**
+     * @brief 
+     * 
+     * @details 
+     *      1. 首先获得该关键帧的所有MapPoint点，统计观测到这些3d点的每个关键与其它所有关键帧之间的共视程度
+     *         对每一个找到的关键帧，建立一条边，边的权重是该关键帧与当前关键帧共同观测的3d点的个数
+     *      2. 并且该权重必须大于一个阈值，如果没有超过该阈值的权重，那么就只保留权重最大的边
+     *      3. 对这些连接按照权重从大到小进行排序
+     */
     void UpdateConnections();
     void UpdateBestCovisibles();
     std::set<KeyFrame *> GetConnectedKeyFrames();
@@ -87,6 +96,12 @@ public:
     void ReplaceMapPointMatch(const size_t &idx, MapPoint* pMP);
     std::set<MapPoint*> GetMapPoints();
     std::vector<MapPoint*> GetMapPointMatches();
+    /**
+     * @brief 返回能被至少minObs个相机观测到的地图点的个数,即高质量地图点的数量
+     * 
+     * @param minObs 
+     * @return int 
+     */
     int TrackedMapPoints(const int &minObs);
     MapPoint* GetMapPoint(const size_t &idx);
 
@@ -122,7 +137,7 @@ public:
 
     static long unsigned int nNextId;
     long unsigned int mnId;
-    const long unsigned int mnFrameId;
+    const long unsigned int mnFrameId;  // 记录了该KeyFrame是由哪个Frame初始化的
 
     const double mTimeStamp;
 
