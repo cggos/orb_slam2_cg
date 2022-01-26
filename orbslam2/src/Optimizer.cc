@@ -503,6 +503,9 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         }
     }
 
+    printf("[cggos %s] lLocalKeyFrames: %d, lFixedCameras: %d, lLocalMapPoints: %d\n", 
+                        __FUNCTION__, lLocalKeyFrames.size(), lFixedCameras.size(), lLocalMapPoints.size());
+
     // Setup optimizer
     g2o::SparseOptimizer optimizer;
     g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
@@ -679,7 +682,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 
         if(e->chi2()>5.991 || !e->isDepthPositive())
         {
-            e->setLevel(1);
+            e->setLevel(1); // level 1: 野值边，0：内点
         }
 
         e->setRobustKernel(0);
