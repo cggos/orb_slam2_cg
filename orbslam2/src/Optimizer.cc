@@ -659,6 +659,21 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         if(*pbStopFlag)
             return;
 
+    // auto vs = optimizer.vertices();
+    // int sum_state = 0;
+    // for(auto it = vs.begin(); it !=vs.end(); it++) {
+    //     g2o::OptimizableGraph::Vertex* v = static_cast<g2o::OptimizableGraph::Vertex*>(it->second);
+    //     std::cout << v->dimension() << " ";
+    //     sum_state += v->dimension();
+    // }
+    // std::cout << std::endl;
+    // std::cout << "sum state: " << sum_state << std::endl;
+
+    // std::set<g2o::HyperGraph::Edge*> es = optimizer.edges();
+    // std::cout << "edges: " << es.size() << std::endl;
+    // for(auto it = es.begin(); it !=es.end(); it++) {
+    // }
+
     optimizer.initializeOptimization();
     optimizer.optimize(5);
 
