@@ -32,3 +32,5 @@ platforms/ros_wrapper/src/CMakeLists.txt
 logs/
 g2o/
 .vscode/
+
+*.dot

@@ -379,6 +379,7 @@ void System::SaveTrajectoryTUM(const string &filename)
     cout << endl << "trajectory saved!" << endl;
 
 
+# if 0
     std::ofstream of_cov_graph;
     of_cov_graph.open("cov_graph.dot");
     of_cov_graph << "graph {" << std::endl;
@@ -411,6 +412,7 @@ void System::SaveTrajectoryTUM(const string &filename)
     }
     of_cov_graph << "}" << std::endl;
     of_cov_graph.close();
+#endif    
 }
 
 
