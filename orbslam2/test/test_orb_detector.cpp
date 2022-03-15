@@ -1,6 +1,21 @@
+/**
+ * @file test_orb_detector.cpp
+ * @author cggos (cggos@outlook.com)
+ * @brief
+ *      build: cmake -DWITH_ORB_C=ON ..
+ *      run: ./test_orb_detector
+ * @version 0.1
+ * @date 2022-03-15
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
+
+#include <fstream>
 #include <iostream>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <string>
 
 #include "ORBextractor.h"
 
@@ -32,17 +47,38 @@ int main() {
   cv::Mat mDescriptors;
   (*mpORBextractor)(img_gray, cv::Mat(), mvKeys, mDescriptors);
 
-  // show
+  // show and save
+  std::vector<std::pair<float, cv::Point2f*>> v_res_pt;
+  v_res_pt.reserve(mvKeys.size());
+
   const float r = 5;
   for (int i = 0; i < mvKeys.size(); i++) {
+    const cv::Point2f& pt = mvKeys[i].pt;
     cv::Point2f pt1, pt2;
-    pt1.x = mvKeys[i].pt.x - r;
-    pt1.y = mvKeys[i].pt.y - r;
-    pt2.x = mvKeys[i].pt.x + r;
-    pt2.y = mvKeys[i].pt.y + r;
+    pt1.x = pt.x - r;
+    pt1.y = pt.y - r;
+    pt2.x = pt.x + r;
+    pt2.y = pt.y + r;
     cv::rectangle(img, pt1, pt2, cv::Scalar(0, 255, 0));
-    cv::circle(img, mvKeys[i].pt, 2, cv::Scalar(0, 255, 0), -1);
+    cv::circle(img, pt, 2, cv::Scalar(0, 255, 0), -1);
+
+    v_res_pt.push_back(std::make_pair(mvKeys[i].response, &mvKeys[i].pt));
   }
+
+  // key_pts.raw: origin ORB Detector with lena.bmp
+  // key_pts.new: new alg.
+  std::string str_file;
+#ifdef WITH_ORB_C
+  str_file = "../data/key_pts.new";
+#else
+  str_file = "../data/key_pts.raw";
+#endif
+  std::ofstream of;
+  of.open(str_file.c_str());
+  std::sort(v_res_pt.begin(), v_res_pt.end());
+  for (int i = 0; i < mvKeys.size(); i++) of << *(v_res_pt[i].second) << std::endl;
+  if (of.is_open()) of.close();
+
   cv::imshow("orb_detector", img);
   cv::waitKey(0);
 

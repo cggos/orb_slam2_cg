@@ -62,6 +62,9 @@
 
 #include "ORBextractor.h"
 
+#ifdef WITH_ORB_C
+#include "orb_extractor_c.h"
+#endif
 
 using namespace cv;
 using namespace std;
@@ -831,8 +834,13 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
         vector<KeyPoint> & keypoints = allKeypoints[level];
         keypoints.reserve(nfeatures);
 
+#ifdef WITH_ORB_C
+        keypoints = cg::distribute_quadtree_c(vToDistributeKeys, minBorderX, maxBorderX,
+                                              minBorderY, maxBorderY,mnFeaturesPerLevel[level], level, nfeatures);
+#else
         keypoints = DistributeOctTree(vToDistributeKeys, minBorderX, maxBorderX,
                                       minBorderY, maxBorderY,mnFeaturesPerLevel[level], level);
+#endif
 
         const int scaledPatchSize = PATCH_SIZE*mvScaleFactor[level];
 
