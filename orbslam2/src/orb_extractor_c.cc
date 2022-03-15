@@ -52,17 +52,15 @@ void ExtractorNodeCG::DivideNode(ExtractorNodeCG &n1, ExtractorNodeCG &n2, Extra
   // Associate points to childs
   for (size_t i = 0; i < sz_keys; i++) {
     const KeyPointCG &kp = ptr_keys[i];
-    if (kp.pt.x < n1.UR.x) {
-      if (kp.pt.y < n1.BR.y) {
+    if (kp.x < n1.UR.x) {
+      if (kp.y < n1.BR.y)
         n1.push_keypts(kp);
-      } else {
+      else
         n3.push_keypts(kp);
-      }
-    } else if (kp.pt.y < n1.BR.y) {
+    } else if (kp.y < n1.BR.y)
       n2.push_keypts(kp);
-    } else {
+    else
       n4.push_keypts(kp);
-    }
   }
 
   if (n1.sz_keys == 1) n1.bNoMore = true;
@@ -73,8 +71,8 @@ void ExtractorNodeCG::DivideNode(ExtractorNodeCG &n1, ExtractorNodeCG &n2, Extra
 
 KeyPointCG kp_cv2cg(const cv::KeyPoint &kp) {
   KeyPointCG kpcg;
-  kpcg.pt.x = kp.pt.x;
-  kpcg.pt.y = kp.pt.y;
+  kpcg.x = kp.pt.x;
+  kpcg.y = kp.pt.y;
   kpcg.angle = kp.angle;
   kpcg.octave = kp.octave;
   kpcg.response = kp.response;
@@ -84,8 +82,8 @@ KeyPointCG kp_cv2cg(const cv::KeyPoint &kp) {
 
 cv::KeyPoint kp_cg2cv(const KeyPointCG &kpcg) {
   cv::KeyPoint kp;
-  kp.pt.x = kpcg.pt.x;
-  kp.pt.y = kpcg.pt.y;
+  kp.pt.x = kpcg.x;
+  kp.pt.y = kpcg.y;
   kp.angle = kpcg.angle;
   kp.octave = kpcg.octave;
   kp.response = kpcg.response;
@@ -128,7 +126,7 @@ vector<cv::KeyPoint> distribute_quadtree_c(const vector<cv::KeyPoint> &vToDistri
   // Associate points to childs
   for (size_t i = 0; i < vToDistributeKeys.size(); i++) {
     const KeyPointCG &kp = kp_cv2cg(vToDistributeKeys[i]);
-    vpIniNodes[kp.pt.x / hX]->push_keypts(kp);
+    vpIniNodes[kp.x / hX]->push_keypts(kp);
   }
 
   list<ExtractorNodeCG>::iterator lit = lNodes.begin();
@@ -270,18 +268,16 @@ vector<cv::KeyPoint> distribute_quadtree_c(const vector<cv::KeyPoint> &vToDistri
   vector<cv::KeyPoint> vResultKeys;
   vResultKeys.reserve(nfeatures);
   for (list<ExtractorNodeCG>::iterator lit = lNodes.begin(); lit != lNodes.end(); lit++) {
-    KeyPointCG *vNodeKeys = lit->ptr_keys;
-    KeyPointCG *pKP = &(lit->ptr_keys[0]);
-    float maxResponse = pKP->response;
-
+    KeyPointCG kp = lit->ptr_keys[0];
+    float maxResponse = kp.response;
     for (size_t k = 1; k < lit->sz_keys; k++) {
-      if (vNodeKeys[k].response > maxResponse) {
-        pKP = &vNodeKeys[k];
-        maxResponse = vNodeKeys[k].response;
+      if (lit->ptr_keys[k].response > maxResponse) {
+        kp = lit->ptr_keys[k];
+        maxResponse = kp.response;
       }
     }
 
-    vResultKeys.push_back(kp_cg2cv(*pKP));
+    vResultKeys.push_back(kp_cg2cv(kp));
   }
 
   return vResultKeys;

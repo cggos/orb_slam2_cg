@@ -48,6 +48,8 @@ int main() {
   (*mpORBextractor)(img_gray, cv::Mat(), mvKeys, mDescriptors);
 
   // show and save
+  std::cout << "mvKeys: " << mvKeys.size() << std::endl;
+
   std::vector<std::pair<float, cv::Point2f*>> v_res_pt;
   v_res_pt.reserve(mvKeys.size());
 

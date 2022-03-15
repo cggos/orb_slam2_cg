@@ -37,15 +37,19 @@ struct Point2I {
 };
 
 struct KeyPointCG {
-  Point2I pt;
-  float size;
-  float angle;
-  float response;
-  int octave;
+  float x = 0.f;
+  float y = 0.f;
+  float size = 0.f;
+  float angle = 0.f;
+  float response = 0.f;
+  int octave = 0;
+
+  KeyPointCG() {}
 
   KeyPointCG &operator=(const KeyPointCG &rhs) {
     if (this == &rhs) return *this;
-    pt = rhs.pt;
+    x = rhs.x;
+    y = rhs.y;
     size = rhs.size;
     angle = rhs.angle;
     response = rhs.response;
@@ -69,7 +73,6 @@ struct ExtractorNodeCG {
   }
 
   // TODO
-  // std::vector<cv::KeyPoint> vKeys;
   std::list<ExtractorNodeCG>::iterator lit;
 
   ExtractorNodeCG() {}
@@ -91,4 +94,4 @@ std::vector<cv::KeyPoint> distribute_quadtree_c(const std::vector<cv::KeyPoint> 
 
 }  // namespace cg
 
-#endif
+#endif  // ORBEXTRACTOR_C_H
