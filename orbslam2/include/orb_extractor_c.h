@@ -16,6 +16,11 @@
 #include <opencv2/core/core.hpp>
 #include <vector>
 
+// clang-format off
+#define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }
+#define SAFE_DELETE_ARRAY(p) { if(p) { delete[] (p);   (p)=NULL; } }
+#define SAFE_RELEASE(p)      { if(p) { (p)->Release(); (p)=NULL; } }
+// clang-format on
 #define SAFE_DELETE_2POINTERS(p, sz) \
   for (int i = 0; i < sz; i++)       \
     if ((p)[i]) {                    \

@@ -837,6 +837,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
 #ifdef WITH_ORB_C
         size_t sz_kpt = vToDistributeKeys.size();
         cg::KeyPointCG **arr_to_distribute_keys = new cg::KeyPointCG *[sz_kpt];
+        // cg::KeyPointCG *arr_to_distribute_keys[sz_kpt];
         for(int i=0; i<sz_kpt; i++) arr_to_distribute_keys[i] = new cg::KeyPointCG(cg::kp_cv2cg(vToDistributeKeys[i]));
 
         int ret_sz = 0;
