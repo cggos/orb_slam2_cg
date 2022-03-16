@@ -91,7 +91,8 @@ cv::KeyPoint kp_cg2cv(const KeyPointCG &kpcg) {
   return kp;
 }
 
-vector<cv::KeyPoint> distribute_quadtree_c(const vector<cv::KeyPoint> &vToDistributeKeys,
+vector<cv::KeyPoint> distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
+                                           const int &sz_to_dis_keys,
                                            const int &minX,
                                            const int &maxX,
                                            const int &minY,
@@ -100,6 +101,8 @@ vector<cv::KeyPoint> distribute_quadtree_c(const vector<cv::KeyPoint> &vToDistri
                                            const int &level,
                                            const int &nfeatures) {
   std::cout << "level: " << level << ", " << __FUNCTION__ << std::endl;
+
+  assert(arr_to_dis_keys == nullptr || sz_to_dis_keys == 0);
 
   // Compute how many initial nodes
   const int nIni = round(static_cast<float>(maxX - minX) / (maxY - minY));
@@ -116,15 +119,15 @@ vector<cv::KeyPoint> distribute_quadtree_c(const vector<cv::KeyPoint> &vToDistri
     ni.UR = Point2I(hX * static_cast<float>(i + 1), 0);
     ni.BL = Point2I(ni.UL.x, maxY - minY);
     ni.BR = Point2I(ni.UR.x, maxY - minY);
-    ni.ptr_keys = new KeyPointCG[vToDistributeKeys.size()];
+    ni.ptr_keys = new KeyPointCG[sz_to_dis_keys];
 
     lNodes.push_back(ni);
     vpIniNodes[i] = &lNodes.back();
   }
 
   // Associate points to childs
-  for (size_t i = 0; i < vToDistributeKeys.size(); i++) {
-    const KeyPointCG &kp = kp_cv2cg(vToDistributeKeys[i]);
+  for (size_t i = 0; i < sz_to_dis_keys; i++) {
+    const KeyPointCG &kp = *(arr_to_dis_keys[i]);
     vpIniNodes[(int)std::floor(kp.x / hX)]->push_keypts(kp);
   }
 

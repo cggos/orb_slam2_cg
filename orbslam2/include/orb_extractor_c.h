@@ -83,7 +83,8 @@ struct ExtractorNodeCG {
 KeyPointCG kp_cv2cg(const cv::KeyPoint &kp);
 cv::KeyPoint kp_cg2cv(const KeyPointCG &kpcg);
 
-std::vector<cv::KeyPoint> distribute_quadtree_c(const std::vector<cv::KeyPoint> &vToDistributeKeys,
+std::vector<cv::KeyPoint> distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
+                                                const int &sz_to_dis_keys,
                                                 const int &minX,
                                                 const int &maxX,
                                                 const int &minY,
