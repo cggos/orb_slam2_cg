@@ -12,9 +12,11 @@
 #ifndef ORBEXTRACTOR_C_H
 #define ORBEXTRACTOR_C_H
 
-#include <list>
+// #include <list>
 #include <opencv2/core/core.hpp>
-#include <vector>
+// #include <vector>
+
+#include "link_list.h"
 
 // clang-format off
 #define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }
@@ -89,7 +91,7 @@ struct ExtractorNodeCG {
   }
 
   // TODO
-  std::list<ExtractorNodeCG>::iterator lit;
+  List<ExtractorNodeCG>::iterator lit;
 
   ExtractorNodeCG() {}
 

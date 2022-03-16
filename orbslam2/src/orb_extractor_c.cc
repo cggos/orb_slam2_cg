@@ -109,7 +109,7 @@ cg::KeyPointCG **distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
 
   const float hX = static_cast<float>(maxX - minX) / nIni;
 
-  list<ExtractorNodeCG> lNodes;
+  List<ExtractorNodeCG> lNodes;
 
   ExtractorNodeCG *vpIniNodes[nIni];
 
@@ -131,13 +131,13 @@ cg::KeyPointCG **distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
     vpIniNodes[(int)std::floor(kp.x / hX)]->push_keypts(kp);
   }
 
-  list<ExtractorNodeCG>::iterator lit = lNodes.begin();
+  List<ExtractorNodeCG>::iterator lit = lNodes.begin();
 
   while (lit != lNodes.end()) {
-    if (lit->sz_keys == 1) {
-      lit->bNoMore = true;
+    if ((*lit).sz_keys == 1) {
+      (*lit).bNoMore = true;
       lit++;
-    } else if (lit->sz_keys == 0)
+    } else if ((*lit).sz_keys == 0)
       lit = lNodes.erase(lit);
     else
       lit++;
@@ -162,14 +162,14 @@ cg::KeyPointCG **distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
     vSizeAndPointerToNode.clear();
 
     while (lit != lNodes.end()) {
-      if (lit->bNoMore) {
+      if ((*lit).bNoMore) {
         // If node only contains one point do not subdivide and continue
         lit++;
         continue;
       } else {
         // If more than one point, subdivide
         ExtractorNodeCG n1, n2, n3, n4;
-        lit->DivideNode(n1, n2, n3, n4);
+        (*lit).DivideNode(n1, n2, n3, n4);
 
         // Add childs if they contain points
         if (n1.sz_keys > 0) {
@@ -270,12 +270,12 @@ cg::KeyPointCG **distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
   ret_sz = lNodes.size();
   int ret_idx = 0;
   cg::KeyPointCG **arr_ret_keys = new cg::KeyPointCG *[ret_sz];
-  for (list<ExtractorNodeCG>::iterator lit = lNodes.begin(); lit != lNodes.end(); lit++, ret_idx++) {
-    KeyPointCG kp = lit->ptr_keys[0];
+  for (List<ExtractorNodeCG>::iterator lit = lNodes.begin(); lit != lNodes.end(); lit++, ret_idx++) {
+    KeyPointCG kp = (*lit).ptr_keys[0];
     float maxResponse = kp.response;
-    for (size_t k = 1; k < lit->sz_keys; k++) {
-      if (lit->ptr_keys[k].response > maxResponse) {
-        kp = lit->ptr_keys[k];
+    for (size_t k = 1; k < (*lit).sz_keys; k++) {
+      if ((*lit).ptr_keys[k].response > maxResponse) {
+        kp = (*lit).ptr_keys[k];
         maxResponse = kp.response;
       }
     }
