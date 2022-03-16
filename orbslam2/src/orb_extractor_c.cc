@@ -108,8 +108,7 @@ vector<cv::KeyPoint> distribute_quadtree_c(const vector<cv::KeyPoint> &vToDistri
 
   list<ExtractorNodeCG> lNodes;
 
-  vector<ExtractorNodeCG *> vpIniNodes;
-  vpIniNodes.resize(nIni);
+  ExtractorNodeCG *vpIniNodes[nIni];
 
   for (int i = 0; i < nIni; i++) {
     ExtractorNodeCG ni;
@@ -126,7 +125,7 @@ vector<cv::KeyPoint> distribute_quadtree_c(const vector<cv::KeyPoint> &vToDistri
   // Associate points to childs
   for (size_t i = 0; i < vToDistributeKeys.size(); i++) {
     const KeyPointCG &kp = kp_cv2cg(vToDistributeKeys[i]);
-    vpIniNodes[kp.x / hX]->push_keypts(kp);
+    vpIniNodes[(int)std::floor(kp.x / hX)]->push_keypts(kp);
   }
 
   list<ExtractorNodeCG>::iterator lit = lNodes.begin();
