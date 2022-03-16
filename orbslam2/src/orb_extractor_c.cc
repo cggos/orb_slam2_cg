@@ -91,15 +91,15 @@ cv::KeyPoint kp_cg2cv(const KeyPointCG &kpcg) {
   return kp;
 }
 
-vector<cv::KeyPoint> distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
-                                           const int &sz_to_dis_keys,
-                                           const int &minX,
-                                           const int &maxX,
-                                           const int &minY,
-                                           const int &maxY,
-                                           const int &N,
-                                           const int &level,
-                                           const int &nfeatures) {
+cg::KeyPointCG **distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
+                                       const int &sz_to_dis_keys,
+                                       const int &minX,
+                                       const int &maxX,
+                                       const int &minY,
+                                       const int &maxY,
+                                       const int &N,
+                                       const int &level,
+                                       int &ret_sz) {
   std::cout << "level: " << level << ", " << __FUNCTION__ << std::endl;
 
   assert(arr_to_dis_keys == nullptr || sz_to_dis_keys == 0);
@@ -267,9 +267,10 @@ vector<cv::KeyPoint> distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
   }
 
   // Retain the best point in each node
-  vector<cv::KeyPoint> vResultKeys;
-  vResultKeys.reserve(nfeatures);
-  for (list<ExtractorNodeCG>::iterator lit = lNodes.begin(); lit != lNodes.end(); lit++) {
+  ret_sz = lNodes.size();
+  int ret_idx = 0;
+  cg::KeyPointCG **arr_ret_keys = new cg::KeyPointCG *[ret_sz];
+  for (list<ExtractorNodeCG>::iterator lit = lNodes.begin(); lit != lNodes.end(); lit++, ret_idx++) {
     KeyPointCG kp = lit->ptr_keys[0];
     float maxResponse = kp.response;
     for (size_t k = 1; k < lit->sz_keys; k++) {
@@ -278,11 +279,10 @@ vector<cv::KeyPoint> distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
         maxResponse = kp.response;
       }
     }
-
-    vResultKeys.push_back(kp_cg2cv(kp));
+    arr_ret_keys[ret_idx] = new KeyPointCG(kp);
   }
 
-  return vResultKeys;
+  return arr_ret_keys;
 }
 
 }  // namespace cg

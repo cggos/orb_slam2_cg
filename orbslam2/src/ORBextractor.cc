@@ -836,11 +836,19 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
 
 #ifdef WITH_ORB_C
         size_t sz_kpt = vToDistributeKeys.size();
-        cg::KeyPointCG *arr_to_distribute_keys[sz_kpt];
+        cg::KeyPointCG **arr_to_distribute_keys = new cg::KeyPointCG *[sz_kpt];
         for(int i=0; i<sz_kpt; i++) arr_to_distribute_keys[i] = new cg::KeyPointCG(cg::kp_cv2cg(vToDistributeKeys[i]));
-        
-        keypoints = cg::distribute_quadtree_c(arr_to_distribute_keys, sz_kpt, minBorderX, maxBorderX,
-                                              minBorderY, maxBorderY,mnFeaturesPerLevel[level], level, nfeatures);
+
+        int ret_sz = 0;
+        cg::KeyPointCG **arr_ret_keys = cg::distribute_quadtree_c(
+            arr_to_distribute_keys, sz_kpt, 
+            minBorderX, maxBorderX, minBorderY, maxBorderY,
+            mnFeaturesPerLevel[level], level, ret_sz);
+
+        for(int i=0; i<ret_sz; i++) keypoints.push_back(kp_cg2cv(*arr_ret_keys[i]));
+
+        SAFE_DELETE_2POINTERS(arr_to_distribute_keys, sz_kpt)
+        SAFE_DELETE_2POINTERS(arr_ret_keys, ret_sz)
 #else
         keypoints = DistributeOctTree(vToDistributeKeys, minBorderX, maxBorderX,
                                       minBorderY, maxBorderY,mnFeaturesPerLevel[level], level);

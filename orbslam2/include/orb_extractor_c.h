@@ -16,6 +16,17 @@
 #include <opencv2/core/core.hpp>
 #include <vector>
 
+#define SAFE_DELETE_2POINTERS(p, sz) \
+  for (int i = 0; i < sz; i++)       \
+    if ((p)[i]) {                    \
+      delete (p)[i];                 \
+      (p)[i] = nullptr;              \
+    }                                \
+  if (p) {                           \
+    delete (p);                      \
+    (p) = nullptr;                   \
+  }
+
 namespace cg {
 
 typedef short int Int;
@@ -83,15 +94,15 @@ struct ExtractorNodeCG {
 KeyPointCG kp_cv2cg(const cv::KeyPoint &kp);
 cv::KeyPoint kp_cg2cv(const KeyPointCG &kpcg);
 
-std::vector<cv::KeyPoint> distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
-                                                const int &sz_to_dis_keys,
-                                                const int &minX,
-                                                const int &maxX,
-                                                const int &minY,
-                                                const int &maxY,
-                                                const int &N,
-                                                const int &level,
-                                                const int &nfeatures);
+cg::KeyPointCG **distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
+                                       const int &sz_to_dis_keys,
+                                       const int &minX,
+                                       const int &maxX,
+                                       const int &minY,
+                                       const int &maxY,
+                                       const int &N,
+                                       const int &level,
+                                       int &ret_sz);
 
 }  // namespace cg
 
