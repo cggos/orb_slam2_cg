@@ -26,8 +26,6 @@
 #include <list>
 #include <vector>
 
-#define WITH_ORB_C 1
-
 namespace ORB_SLAM2 {
 
 class ExtractorNode {

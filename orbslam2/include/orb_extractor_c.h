@@ -19,9 +19,9 @@
 #include "link_list.h"
 
 // clang-format off
-#define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }
-#define SAFE_DELETE_ARRAY(p) { if(p) { delete[] (p);   (p)=NULL; } }
-#define SAFE_RELEASE(p)      { if(p) { (p)->Release(); (p)=NULL; } }
+#define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=nullptr; } }
+#define SAFE_DELETE_ARRAY(p) { if(p) { delete[] (p);   (p)=nullptr; } }
+#define SAFE_RELEASE(p)      { if(p) { (p)->Release(); (p)=nullptr; } }
 // clang-format on
 #define SAFE_DELETE_2POINTERS(p, sz) \
   for (int i = 0; i < sz; i++)       \
@@ -62,40 +62,61 @@ struct KeyPointCG {
   float response = 0.f;
   int octave = 0;
 
-  KeyPointCG() {}
+  // KeyPointCG() {}
 
-  KeyPointCG &operator=(const KeyPointCG &rhs) {
-    if (this == &rhs) return *this;
-    x = rhs.x;
-    y = rhs.y;
-    size = rhs.size;
-    angle = rhs.angle;
-    response = rhs.response;
-    octave = rhs.octave;
-    return *this;
-  }
+  // KeyPointCG &operator=(const KeyPointCG &rhs) {
+  //   if (this == &rhs) return *this;
+  //   x = rhs.x;
+  //   y = rhs.y;
+  //   size = rhs.size;
+  //   angle = rhs.angle;
+  //   response = rhs.response;
+  //   octave = rhs.octave;
+  //   return *this;
+  // }
 };
 
-struct ExtractorNodeCG {
+class ExtractorNodeCG {
+ public:
+  ExtractorNodeCG() {}
+
+  ExtractorNodeCG(Int sz_keys_max) : sz_keys_max(sz_keys_max) { ptr_keys = new KeyPointCG[sz_keys_max]; }
+
+  ExtractorNodeCG(const ExtractorNodeCG &rhs) {
+    bNoMore = rhs.bNoMore;
+    UL = rhs.UL;
+    UR = rhs.UR;
+    BL = rhs.BL;
+    BR = rhs.BR;
+    sz_keys_max = rhs.sz_keys_max;
+    idx_keys = rhs.idx_keys;
+    if (rhs.ptr_keys != nullptr && sz_keys_max != 0) {
+      ptr_keys = new KeyPointCG[sz_keys_max];
+      if (idx_keys != 0)
+        for (int i = 0; i < idx_keys; i++) ptr_keys[i] = rhs.ptr_keys[i];
+    }
+  }
+
+  ~ExtractorNodeCG() { SAFE_DELETE(ptr_keys) }
+
+  void push_keypts(const KeyPointCG &kp) {
+    assert(ptr_keys == nullptr);
+    ptr_keys[idx_keys] = kp;
+    idx_keys++;
+  }
+
+  void DivideNode(ExtractorNodeCG &n1, ExtractorNodeCG &n2, ExtractorNodeCG &n3, ExtractorNodeCG &n4);
+
+ public:
   bool bNoMore = false;
 
   Point2I UL, UR, BL, BR;
 
-  Int sz_keys = 0;
+  Int idx_keys = 0;
+  Int sz_keys_max = 0;
   KeyPointCG *ptr_keys = nullptr;
 
-  void push_keypts(const KeyPointCG &kp) {
-    assert(ptr_keys == nullptr);
-    ptr_keys[sz_keys] = kp;
-    sz_keys++;
-  }
-
-  // TODO
   List<ExtractorNodeCG>::iterator lit;
-
-  ExtractorNodeCG() {}
-
-  void DivideNode(ExtractorNodeCG &n1, ExtractorNodeCG &n2, ExtractorNodeCG &n3, ExtractorNodeCG &n4);
 };
 
 KeyPointCG kp_cv2cg(const cv::KeyPoint &kp);

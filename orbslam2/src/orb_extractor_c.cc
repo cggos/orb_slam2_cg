@@ -18,7 +18,7 @@ using namespace std;
 namespace cg {
 
 void ExtractorNodeCG::DivideNode(ExtractorNodeCG &n1, ExtractorNodeCG &n2, ExtractorNodeCG &n3, ExtractorNodeCG &n4) {
-  if (sz_keys == 0 || ptr_keys == nullptr) return;
+  if (idx_keys == 0 || ptr_keys == nullptr) return;
 
   const int halfX = ceil(static_cast<float>(UR.x - UL.x) / 2);
   const int halfY = ceil(static_cast<float>(BR.y - UL.y) / 2);
@@ -44,13 +44,13 @@ void ExtractorNodeCG::DivideNode(ExtractorNodeCG &n1, ExtractorNodeCG &n2, Extra
   n4.BL = n3.BR;
   n4.BR = BR;
 
-  n1.ptr_keys = new KeyPointCG[sz_keys];
-  n2.ptr_keys = new KeyPointCG[sz_keys];
-  n3.ptr_keys = new KeyPointCG[sz_keys];
-  n4.ptr_keys = new KeyPointCG[sz_keys];
+  // n1.ptr_keys = new KeyPointCG[idx_keys];
+  // n2.ptr_keys = new KeyPointCG[idx_keys];
+  // n3.ptr_keys = new KeyPointCG[idx_keys];
+  // n4.ptr_keys = new KeyPointCG[idx_keys];
 
   // Associate points to childs
-  for (size_t i = 0; i < sz_keys; i++) {
+  for (size_t i = 0; i < idx_keys; i++) {
     const KeyPointCG &kp = ptr_keys[i];
     if (kp.x < n1.UR.x) {
       if (kp.y < n1.BR.y)
@@ -63,10 +63,10 @@ void ExtractorNodeCG::DivideNode(ExtractorNodeCG &n1, ExtractorNodeCG &n2, Extra
       n4.push_keypts(kp);
   }
 
-  if (n1.sz_keys == 1) n1.bNoMore = true;
-  if (n2.sz_keys == 1) n2.bNoMore = true;
-  if (n3.sz_keys == 1) n3.bNoMore = true;
-  if (n4.sz_keys == 1) n4.bNoMore = true;
+  if (n1.idx_keys == 1) n1.bNoMore = true;
+  if (n2.idx_keys == 1) n2.bNoMore = true;
+  if (n3.idx_keys == 1) n3.bNoMore = true;
+  if (n4.idx_keys == 1) n4.bNoMore = true;
 }
 
 KeyPointCG kp_cv2cg(const cv::KeyPoint &kp) {
@@ -100,7 +100,8 @@ cg::KeyPointCG **distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
                                        const int &N,
                                        const int &level,
                                        int &ret_sz) {
-  std::cout << "level: " << level << ", " << __FUNCTION__ << std::endl;
+  std::cout << __FUNCTION__ << ": "
+            << "level: " << level << std::endl;
 
   assert(arr_to_dis_keys == nullptr || sz_to_dis_keys == 0);
 
@@ -114,15 +115,18 @@ cg::KeyPointCG **distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
   ExtractorNodeCG *vpIniNodes[nIni];
 
   for (int i = 0; i < nIni; i++) {
-    ExtractorNodeCG ni;
+    ExtractorNodeCG ni(sz_to_dis_keys);
     ni.UL = Point2I(hX * static_cast<float>(i), 0);
     ni.UR = Point2I(hX * static_cast<float>(i + 1), 0);
     ni.BL = Point2I(ni.UL.x, maxY - minY);
     ni.BR = Point2I(ni.UR.x, maxY - minY);
-    ni.ptr_keys = new KeyPointCG[sz_to_dis_keys];
+    // ni.sz_keys_max = sz_to_dis_keys;
+    // ni.ptr_keys = new KeyPointCG[sz_to_dis_keys];
 
     lNodes.push_back(ni);
     vpIniNodes[i] = &lNodes.back();
+
+    vpIniNodes[i]->idx_keys = 0;  // reset
   }
 
   // Associate points to childs
@@ -134,10 +138,10 @@ cg::KeyPointCG **distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
   List<ExtractorNodeCG>::iterator lit = lNodes.begin();
 
   while (lit != lNodes.end()) {
-    if ((*lit).sz_keys == 1) {
+    if ((*lit).idx_keys == 1) {
       (*lit).bNoMore = true;
       lit++;
-    } else if ((*lit).sz_keys == 0)
+    } else if ((*lit).idx_keys == 0)
       lit = lNodes.erase(lit);
     else
       lit++;
@@ -168,39 +172,40 @@ cg::KeyPointCG **distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
         continue;
       } else {
         // If more than one point, subdivide
-        ExtractorNodeCG n1, n2, n3, n4;
+        size_t sz_n14 = (*lit).idx_keys;
+        ExtractorNodeCG n1(sz_n14), n2(sz_n14), n3(sz_n14), n4(sz_n14);
         (*lit).DivideNode(n1, n2, n3, n4);
 
         // Add childs if they contain points
-        if (n1.sz_keys > 0) {
+        if (n1.idx_keys > 0) {
           lNodes.push_front(n1);
-          if (n1.sz_keys > 1) {
+          if (n1.idx_keys > 1) {
             nToExpand++;
-            vSizeAndPointerToNode.push_back(make_pair(n1.sz_keys, &lNodes.front()));
+            vSizeAndPointerToNode.push_back(make_pair(n1.idx_keys, &lNodes.front()));
             lNodes.front().lit = lNodes.begin();
           }
         }
-        if (n2.sz_keys > 0) {
+        if (n2.idx_keys > 0) {
           lNodes.push_front(n2);
-          if (n2.sz_keys > 1) {
+          if (n2.idx_keys > 1) {
             nToExpand++;
-            vSizeAndPointerToNode.push_back(make_pair(n2.sz_keys, &lNodes.front()));
+            vSizeAndPointerToNode.push_back(make_pair(n2.idx_keys, &lNodes.front()));
             lNodes.front().lit = lNodes.begin();
           }
         }
-        if (n3.sz_keys > 0) {
+        if (n3.idx_keys > 0) {
           lNodes.push_front(n3);
-          if (n3.sz_keys > 1) {
+          if (n3.idx_keys > 1) {
             nToExpand++;
-            vSizeAndPointerToNode.push_back(make_pair(n3.sz_keys, &lNodes.front()));
+            vSizeAndPointerToNode.push_back(make_pair(n3.idx_keys, &lNodes.front()));
             lNodes.front().lit = lNodes.begin();
           }
         }
-        if (n4.sz_keys > 0) {
+        if (n4.idx_keys > 0) {
           lNodes.push_front(n4);
-          if (n4.sz_keys > 1) {
+          if (n4.idx_keys > 1) {
             nToExpand++;
-            vSizeAndPointerToNode.push_back(make_pair(n4.sz_keys, &lNodes.front()));
+            vSizeAndPointerToNode.push_back(make_pair(n4.idx_keys, &lNodes.front()));
             lNodes.front().lit = lNodes.begin();
           }
         }
@@ -223,35 +228,36 @@ cg::KeyPointCG **distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
 
         sort(vPrevSizeAndPointerToNode.begin(), vPrevSizeAndPointerToNode.end());
         for (int j = vPrevSizeAndPointerToNode.size() - 1; j >= 0; j--) {
-          ExtractorNodeCG n1, n2, n3, n4;
+          size_t sz_n14 = vPrevSizeAndPointerToNode[j].second->idx_keys;
+          ExtractorNodeCG n1(sz_n14), n2(sz_n14), n3(sz_n14), n4(sz_n14);
           vPrevSizeAndPointerToNode[j].second->DivideNode(n1, n2, n3, n4);
 
           // Add childs if they contain points
-          if (n1.sz_keys > 0) {
+          if (n1.idx_keys > 0) {
             lNodes.push_front(n1);
-            if (n1.sz_keys > 1) {
-              vSizeAndPointerToNode.push_back(make_pair(n1.sz_keys, &lNodes.front()));
+            if (n1.idx_keys > 1) {
+              vSizeAndPointerToNode.push_back(make_pair(n1.idx_keys, &lNodes.front()));
               lNodes.front().lit = lNodes.begin();
             }
           }
-          if (n2.sz_keys > 0) {
+          if (n2.idx_keys > 0) {
             lNodes.push_front(n2);
-            if (n2.sz_keys > 1) {
-              vSizeAndPointerToNode.push_back(make_pair(n2.sz_keys, &lNodes.front()));
+            if (n2.idx_keys > 1) {
+              vSizeAndPointerToNode.push_back(make_pair(n2.idx_keys, &lNodes.front()));
               lNodes.front().lit = lNodes.begin();
             }
           }
-          if (n3.sz_keys > 0) {
+          if (n3.idx_keys > 0) {
             lNodes.push_front(n3);
-            if (n3.sz_keys > 1) {
-              vSizeAndPointerToNode.push_back(make_pair(n3.sz_keys, &lNodes.front()));
+            if (n3.idx_keys > 1) {
+              vSizeAndPointerToNode.push_back(make_pair(n3.idx_keys, &lNodes.front()));
               lNodes.front().lit = lNodes.begin();
             }
           }
-          if (n4.sz_keys > 0) {
+          if (n4.idx_keys > 0) {
             lNodes.push_front(n4);
-            if (n4.sz_keys > 1) {
-              vSizeAndPointerToNode.push_back(make_pair(n4.sz_keys, &lNodes.front()));
+            if (n4.idx_keys > 1) {
+              vSizeAndPointerToNode.push_back(make_pair(n4.idx_keys, &lNodes.front()));
               lNodes.front().lit = lNodes.begin();
             }
           }
@@ -273,7 +279,7 @@ cg::KeyPointCG **distribute_quadtree_c(cg::KeyPointCG *arr_to_dis_keys[],
   for (List<ExtractorNodeCG>::iterator lit = lNodes.begin(); lit != lNodes.end(); lit++, ret_idx++) {
     KeyPointCG kp = (*lit).ptr_keys[0];
     float maxResponse = kp.response;
-    for (size_t k = 1; k < (*lit).sz_keys; k++) {
+    for (size_t k = 1; k < (*lit).idx_keys; k++) {
       if ((*lit).ptr_keys[k].response > maxResponse) {
         kp = (*lit).ptr_keys[k];
         maxResponse = kp.response;
