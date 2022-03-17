@@ -7,6 +7,8 @@ endif()
 
 add_definitions(-w)
 
+option(WITH_ORB_C "" OFF)
+
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -Wall  -O3 -march=native")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native")
 
@@ -65,7 +67,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 
-add_library(${PROJECT_NAME} SHARED
+list(APPEND SRC_LIST
    src/System.cc
    src/Tracking.cc
    src/LocalMapping.cc
@@ -87,6 +89,12 @@ add_library(${PROJECT_NAME} SHARED
    src/Viewer.cc
    src/OrbLine.cc
 )
+if(WITH_ORB_C)
+   add_definitions(-DWITH_ORB_C)
+   list(APPEND SRC_LIST src/orb_extractor_c.cc src/link_list.cc)
+endif()
+
+add_library(${PROJECT_NAME} SHARED ${SRC_LIST})
 target_link_libraries(${PROJECT_NAME} ${LIBS})
 
 
