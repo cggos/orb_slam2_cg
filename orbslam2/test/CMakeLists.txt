@@ -27,7 +27,7 @@ include_directories(../include)
 list(APPEND SRC_LIST test_orb_detector.cpp ../src/ORBextractor.cc)
 if(WITH_ORB_C)
    add_definitions(-DWITH_ORB_C)
-   list(APPEND SRC_LIST ../src/orb_extractor_c.cc ../src/link_list.cc)
+   list(APPEND SRC_LIST ../src/orb_extractor_c.cc)
 endif()
 
 add_executable(test_orb_detector ${SRC_LIST})

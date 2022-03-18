@@ -91,7 +91,7 @@ list(APPEND SRC_LIST
 )
 if(WITH_ORB_C)
    add_definitions(-DWITH_ORB_C)
-   list(APPEND SRC_LIST src/orb_extractor_c.cc src/link_list.cc)
+   list(APPEND SRC_LIST src/orb_extractor_c.cc)
 endif()
 
 add_library(${PROJECT_NAME} SHARED ${SRC_LIST})
