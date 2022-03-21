@@ -7,7 +7,8 @@ endif()
 
 add_definitions(-w)
 
-option(WITH_ORB_C "" OFF)
+option(WITH_ORB_C "WITH_ORB_C" OFF)
+option(WITH_ORB_BFM "WITH_ORB_BFM" OFF)
 
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -Wall  -O3 -march=native")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native")
@@ -92,6 +93,10 @@ list(APPEND SRC_LIST
 if(WITH_ORB_C)
    add_definitions(-DWITH_ORB_C)
    list(APPEND SRC_LIST src/orb_extractor_c.cc)
+endif()
+
+if(WITH_ORB_BFM)
+   add_definitions(-DWITH_ORB_BFM)
 endif()
 
 add_library(${PROJECT_NAME} SHARED ${SRC_LIST})

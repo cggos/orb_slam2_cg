@@ -503,8 +503,8 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         }
     }
 
-    printf("[cggos %s] lLocalKeyFrames: %d, lFixedCameras: %d, lLocalMapPoints: %d\n", 
-                        __FUNCTION__, lLocalKeyFrames.size(), lFixedCameras.size(), lLocalMapPoints.size());
+    // printf("[cggos %s] lLocalKeyFrames: %d, lFixedCameras: %d, lLocalMapPoints: %d\n", 
+    //                     __FUNCTION__, lLocalKeyFrames.size(), lFixedCameras.size(), lLocalMapPoints.size());
 
     // Setup optimizer
     g2o::SparseOptimizer optimizer;

@@ -654,7 +654,19 @@ bool Tracking::TrackReferenceKeyFrame() {
     ORBmatcher matcher(0.7, true);
     vector<MapPoint*> vpMapPointMatches;
 
+    auto t1=std::chrono::steady_clock::now();
+
+#ifndef WITH_ORB_BFM
     int nmatches = matcher.SearchByBoW(mpReferenceKF, mCurrentFrame, vpMapPointMatches);
+#else    
+    int nmatches = matcher.SearchByBFM(mpReferenceKF, mCurrentFrame, vpMapPointMatches);
+#endif
+
+    auto t2=std::chrono::steady_clock::now();
+    double dr_ms=std::chrono::duration<double,std::milli>(t2-t1).count();
+    std::cout << std::setiosflags(ios::fixed) << mCurrentFrame.mTimeStamp << ", " << __FUNCTION__ << ": "
+              << "SearchByBoW (" << mpReferenceKF->N << ", " << mCurrentFrame.N << ", " << nmatches << ") " 
+              << dr_ms << std::endl;
 
     if (nmatches < 15)
         return false;

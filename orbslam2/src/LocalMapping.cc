@@ -263,9 +263,21 @@ void LocalMapping::CreateNewMapPoints()
         // Compute Fundamental Matrix
         cv::Mat F12 = ComputeF12(mpCurrentKeyFrame,pKF2);
 
+        auto t1=std::chrono::steady_clock::now();
+
         // Search matches that fullfil epipolar constraint
         vector<pair<size_t,size_t> > vMatchedIndices;
-        matcher.SearchForTriangulation(mpCurrentKeyFrame,pKF2,F12,vMatchedIndices,false);
+#ifndef WITH_ORB_BFM
+        int nm = matcher.SearchForTriangulation(mpCurrentKeyFrame,pKF2,F12,vMatchedIndices,false);
+#else        
+        int nm = matcher.SearchForTriangulationBFM(mpCurrentKeyFrame,pKF2,F12,vMatchedIndices,false);
+#endif        
+
+        auto t2=std::chrono::steady_clock::now();
+        double dr_ms=std::chrono::duration<double,std::milli>(t2-t1).count();
+        std::cout << std::setiosflags(ios::fixed) << mpCurrentKeyFrame->mTimeStamp << ", " << __FUNCTION__ << ": "
+                << "SearchForTriangulation (" << pKF2->N << ", " << mpCurrentKeyFrame->N << ", " << nm << ") " 
+                << dr_ms << std::endl;
 
         cv::Mat Rcw2 = pKF2->GetRotation();
         cv::Mat Rwc2 = Rcw2.t();
