@@ -22,6 +22,9 @@ endif()
 include_directories(${OpenCV_INCLUDE_DIRS})
 list(APPEND LIBS ${OpenCV_LIBS})
 
+find_package(DBoW2 REQUIRED)
+list(APPEND LIBS ${DBoW2_LIBRARIES})
+
 include_directories(../include)
 
 list(APPEND SRC_LIST ../src/ORBextractor.cc)

@@ -9,6 +9,9 @@
  *
  */
 
+#include <DBoW2/FORB.h>
+#include <DBoW2/TemplatedVocabulary.h>
+
 #include <fstream>
 #include <iostream>
 #include <opencv2/features2d/features2d.hpp>
@@ -21,6 +24,10 @@
 
 using namespace ORB_SLAM2;
 using namespace std;
+
+typedef DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB> ORBVocabulary;
+
+ORBVocabulary *voc_ptr;
 
 /**
  * @brief Hanming Distance for Descriptor Matching
@@ -44,6 +51,14 @@ int descriptor_distance(const cv::Mat &a, const cv::Mat &b) {
   }
 
   return dist;
+}
+
+std::vector<cv::Mat> to_descriptor_vector(const cv::Mat &Descriptors) {
+  std::vector<cv::Mat> vDesc;
+  vDesc.reserve(Descriptors.rows);
+  for (int j = 0; j < Descriptors.rows; j++) vDesc.push_back(Descriptors.row(j));
+
+  return vDesc;
 }
 
 void compute_three_maxima(vector<int> *histo, const int L, int &ind1, int &ind2, int &ind3) {
@@ -77,6 +92,118 @@ void compute_three_maxima(vector<int> *histo, const int L, int &ind1, int &ind2,
   } else if (max3 < 0.1f * (float)max1) {
     ind3 = -1;
   }
+}
+
+int orb_match_bow(const cv::Mat &descriptors0,
+                  const cv::Mat &descriptors1,
+                  const vector<cv::KeyPoint> &vKeysUn0,
+                  const vector<cv::KeyPoint> &vKeysUn1,
+                  vector<std::tuple<int, int, float>> &pair_scores,
+                  float mfNNratio = 0.6f,
+                  bool mbCheckOrientation = false) {
+  const int TH_HIGH = 100;
+  const int TH_LOW = 50;
+  const int HISTO_LENGTH = 30;
+
+  const int N0 = descriptors0.rows;
+
+  vector<int> vMatches01(N0, -1);
+  vector<float> scores(N0, 0.f);
+
+  vector<int> rotHist[HISTO_LENGTH];
+  for (int i = 0; i < HISTO_LENGTH; i++) rotHist[i].reserve(500);
+
+  const float factor = 1.0f / HISTO_LENGTH;
+
+  int nmatches = 0;
+
+  DBoW2::BowVector bow_vec0, bow_vec1;
+  DBoW2::FeatureVector feat_vec0, feat_vec1;
+  // Feature vector associate features with nodes in the 4th level (from leaves up)
+  // We assume the vocabulary tree has 6 levels, change the 4 otherwise
+  voc_ptr->transform(to_descriptor_vector(descriptors0), bow_vec0, feat_vec0, 4);
+  voc_ptr->transform(to_descriptor_vector(descriptors1), bow_vec1, feat_vec1, 4);
+
+  DBoW2::FeatureVector::const_iterator f0it = feat_vec0.begin();
+  DBoW2::FeatureVector::const_iterator f1it = feat_vec1.begin();
+  DBoW2::FeatureVector::const_iterator f0end = feat_vec0.end();
+  DBoW2::FeatureVector::const_iterator f1end = feat_vec1.end();
+
+  while (f0it != f0end && f1it != f1end) {
+    if (f0it->first == f1it->first) {
+      for (size_t i0 = 0, iend0 = f0it->second.size(); i0 < iend0; i0++) {
+        size_t idx0 = f0it->second[i0];
+        const cv::Mat &d0 = descriptors0.row(idx0);
+
+        int bestDist = TH_LOW;
+        int bestIdx1 = -1;
+
+        for (size_t i1 = 0, iend1 = f1it->second.size(); i1 < iend1; i1++) {
+          size_t idx1 = f1it->second[i1];
+          const cv::Mat &d1 = descriptors1.row(idx1);
+
+          const int dist = descriptor_distance(d0, d1);
+
+          if (dist > TH_LOW || dist > bestDist) continue;
+
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestIdx1 = idx1;
+          }
+        }
+
+        if (bestIdx1 >= 0) {
+          vMatches01[idx0] = bestIdx1;
+          scores[idx0] = bestDist;
+
+          if (mbCheckOrientation) {
+            float rot = vKeysUn0[idx0].angle - vKeysUn1[bestIdx1].angle;
+            if (rot < 0.0) rot += 360.0f;
+            int bin = round(rot * factor);
+            if (bin == HISTO_LENGTH) bin = 0;
+            assert(bin >= 0 && bin < HISTO_LENGTH);
+            rotHist[bin].push_back(idx0);
+          }
+
+          nmatches++;
+        }
+      }
+
+      f0it++;
+      f1it++;
+    } else if (f0it->first < f1it->first) {
+      f0it = feat_vec0.lower_bound(f1it->first);
+    } else {
+      f1it = feat_vec1.lower_bound(f0it->first);
+    }
+  }
+
+  if (mbCheckOrientation) {
+    int ind1 = -1;
+    int ind2 = -1;
+    int ind3 = -1;
+
+    compute_three_maxima(rotHist, HISTO_LENGTH, ind1, ind2, ind3);
+
+    for (int i = 0; i < HISTO_LENGTH; i++) {
+      if (i != ind1 && i != ind2 && i != ind3) {
+        for (size_t j = 0, jend = rotHist[i].size(); j < jend; j++) {
+          vMatches01[rotHist[i][j]] = -1;
+          nmatches--;
+        }
+      }
+    }
+  }
+
+  pair_scores.clear();
+  pair_scores.reserve(nmatches);
+
+  for (size_t i = 0, iend = vMatches01.size(); i < iend; i++) {
+    if (vMatches01[i] < 0) continue;
+    pair_scores.push_back(std::make_tuple(i, vMatches01[i], scores[i]));
+  }
+
+  return nmatches;
 }
 
 /**
@@ -273,11 +400,39 @@ int main() {
     mpORBextractor = nullptr;
   }
 
+  // BoW
+  // Load ORB Vocabulary
+  cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
+  std::string str_voc_file = "../../../Vocabulary/ORBvoc.txt";
+  voc_ptr = new ORBVocabulary();
+  if (!voc_ptr->loadFromTextFile(str_voc_file)) {
+    cerr << "Wrong path to vocabulary. " << endl;
+    cerr << "Falied to open at: " << str_voc_file << endl;
+    exit(-1);
+  }
+  cout << "Vocabulary loaded!" << endl << endl;
+  std::cout << "test orb_match_bow" << std::endl;
+  std::vector<cv::DMatch> matches_bow, matches_bow_good;
+  {
+    vector<std::tuple<int, int, float>> pair_scores;
+    orb_match_bow(descriptors0, descriptors1, keys0, keys1, pair_scores, 0.6, false);
+
+    for (int i = 0; i < pair_scores.size(); i++) {
+      cv::DMatch match;
+      const auto &pair_score = pair_scores[i];
+      match.queryIdx = std::get<0>(pair_score);
+      match.trainIdx = std::get<1>(pair_score);
+      match.distance = std::get<2>(pair_score);
+      matches_bow.push_back(match);
+    }
+    good_matches(matches_bow, matches_bow_good);
+  }
+
   // orb_match_bfm
   std::cout << "test orb_match_bfm" << std::endl;
   std::vector<cv::DMatch> matches_bfm, matches_bfm_good;
-  vector<std::tuple<int, int, float>> pair_scores;
   {
+    vector<std::tuple<int, int, float>> pair_scores;
     orb_match_bfm(descriptors0, descriptors1, keys0, keys1, pair_scores, 0.6, false);
 
     for (int i = 0; i < pair_scores.size(); i++) {
@@ -304,7 +459,7 @@ int main() {
   // draw
   {
     cv::Mat img_match;
-    cv::drawMatches(img0, keys0, img1, keys1, matches_bfm_good, img_match, cv::Scalar(0, 255, 0), cv::Scalar(0, 0, 255));
+    cv::drawMatches(img0, keys0, img1, keys1, matches_bow, img_match, cv::Scalar(0, 255, 0), cv::Scalar(0, 0, 255));
     cv::imshow("所有匹配点对", img_match);
   }
   cv::waitKey(0);
