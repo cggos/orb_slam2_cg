@@ -346,7 +346,7 @@ int orb_match_bfm(const cv::Mat &Descriptors1,
   return nmatches;
 }
 
-void good_matches(const vector<cv::DMatch> &matches_cv, vector<cv::DMatch> &matches_cv_good) {
+void matches_filter_by_dist(const vector<cv::DMatch> &matches_cv, vector<cv::DMatch> &matches_cv_good) {
   double min_dist = 10000, max_dist = 0;
   for (int i = 0; i < matches_cv.size(); i++) {
     double dist = matches_cv[i].distance;
@@ -403,9 +403,9 @@ int main() {
   // BoW
   // Load ORB Vocabulary
   cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
-  std::string str_voc_file = "../../../Vocabulary/ORBvoc.txt";
+  std::string str_voc_file = "../../../Vocabulary/ORBvoc.bin";
   voc_ptr = new ORBVocabulary();
-  if (!voc_ptr->loadFromTextFile(str_voc_file)) {
+  if (!voc_ptr->loadFromBinaryFile(str_voc_file)) {
     cerr << "Wrong path to vocabulary. " << endl;
     cerr << "Falied to open at: " << str_voc_file << endl;
     exit(-1);
@@ -425,7 +425,7 @@ int main() {
       match.distance = std::get<2>(pair_score);
       matches_bow.push_back(match);
     }
-    good_matches(matches_bow, matches_bow_good);
+    matches_filter_by_dist(matches_bow, matches_bow_good);
   }
 
   // orb_match_bfm
@@ -443,7 +443,7 @@ int main() {
       match.distance = std::get<2>(pair_score);
       matches_bfm.push_back(match);
     }
-    good_matches(matches_bfm, matches_bfm_good);
+    matches_filter_by_dist(matches_bfm, matches_bfm_good);
   }
 
   // test cv::DescriptorMatcher
@@ -453,14 +453,16 @@ int main() {
     cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("BruteForce-Hamming");
     matcher->match(descriptors0, descriptors1, matches_cv);
 
-    good_matches(matches_cv, matches_cv_good);
+    matches_filter_by_dist(matches_cv, matches_cv_good);
   }
 
   // draw
   {
-    cv::Mat img_match;
-    cv::drawMatches(img0, keys0, img1, keys1, matches_bow, img_match, cv::Scalar(0, 255, 0), cv::Scalar(0, 0, 255));
-    cv::imshow("所有匹配点对", img_match);
+    cv::Mat img_all, img_match_bow, img_match_bfm;
+    cv::drawMatches(img0, keys0, img1, keys1, matches_bow, img_match_bow, cv::Scalar(0, 255, 0), cv::Scalar(0, 0, 255));
+    cv::drawMatches(img0, keys0, img1, keys1, matches_bfm, img_match_bfm, cv::Scalar(0, 255, 0), cv::Scalar(0, 0, 255));
+    cv::vconcat(img_match_bow, img_match_bfm, img_all);
+    cv::imshow("BoW vs BFM", img_all);
   }
   cv::waitKey(0);
 
