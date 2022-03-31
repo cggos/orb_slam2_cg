@@ -369,14 +369,31 @@ void matches_filter_by_dist(const vector<cv::DMatch> &matches_cv, vector<cv::DMa
 
 int main() {
   cv::Mat img0, img1, img0_gray, img1_gray;
-  img0 = cv::imread("../data/tum/1305031102.343233.png");
-  img1 = cv::imread("../data/tum/1305031104.943262.png");
+  enum Dataset { TUM = 0, EuRoC, Oppo } kDataType = TUM;
+  switch (kDataType) {
+    case TUM:
+      img0 = cv::imread("../data/tum/1305031102.343233.png");
+      img1 = cv::imread("../data/tum/1305031104.943262.png");
+      break;
+    case EuRoC:
+      img0 = cv::imread("../data/euroc/1403636649563555584.png");
+      img1 = cv::imread("../data/euroc/1403636651713555456.png");
+      break;
+    case Oppo:
+      img0 = cv::imread("../data/oppo/1938689221901.png");
+      img1 = cv::imread("../data/oppo/1946219841224.png");
+      break;
+    default:
+      break;
+  }
   if (img0.empty() || img1.empty()) {
     std::cerr << "img empty!!!" << std::endl;
     return -1;
   }
-  cv::cvtColor(img0, img0_gray, CV_BGR2GRAY);
-  cv::cvtColor(img1, img1_gray, CV_BGR2GRAY);
+  if (img0.channels() == 3) {
+    cv::cvtColor(img0, img0_gray, CV_BGR2GRAY);
+    cv::cvtColor(img1, img1_gray, CV_BGR2GRAY);
+  }
 
   ORBextractor *mpORBextractor;
   {
@@ -459,8 +476,13 @@ int main() {
   // draw
   {
     cv::Mat img_all, img_match_bow, img_match_bfm;
-    cv::drawMatches(img0, keys0, img1, keys1, matches_bow, img_match_bow, cv::Scalar(0, 255, 0), cv::Scalar(0, 0, 255));
-    cv::drawMatches(img0, keys0, img1, keys1, matches_bfm, img_match_bfm, cv::Scalar(0, 255, 0), cv::Scalar(0, 0, 255));
+    cv::drawMatches(img0, keys0, img1, keys1, matches_bow, img_match_bow, cv::Scalar(0, 255, 0), cv::Scalar(255, 0, 0));
+    cv::drawMatches(img0, keys0, img1, keys1, matches_bfm, img_match_bfm, cv::Scalar(0, 255, 0), cv::Scalar(255, 0, 0));
+    std::stringstream ss0, ss1;
+    ss0 << "(" << keys0.size() << " - " << keys1.size() << " : " << matches_bow.size() << " )";
+    ss1 << "(" << keys0.size() << " - " << keys1.size() << " : " << matches_bfm.size() << " )";
+    cv::putText(img_match_bow, ss0.str(), cv::Point(20, 30), 0, 1, cv::Scalar(0, 0, 255), 3);
+    cv::putText(img_match_bfm, ss1.str(), cv::Point(20, 30), 0, 1, cv::Scalar(0, 0, 255), 3);
     cv::vconcat(img_match_bow, img_match_bfm, img_all);
     cv::imshow("BoW vs BFM", img_all);
   }
