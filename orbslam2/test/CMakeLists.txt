@@ -27,14 +27,13 @@ list(APPEND LIBS ${DBoW2_LIBRARIES})
 
 include_directories(../include)
 
-list(APPEND SRC_LIST ../src/ORBextractor.cc)
 if(WITH_ORB_C)
    add_definitions(-DWITH_ORB_C)
    list(APPEND SRC_LIST ../src/orb_extractor_c.cc)
 endif()
 
-add_executable(test_orb_detector test_orb_detector.cpp ${SRC_LIST})
+add_executable(test_orb_detector test_orb_detector.cpp ../src/ORBextractor.cc ${SRC_LIST})
 target_link_libraries(test_orb_detector ${LIBS})
 
-add_executable(test_orb_matcher test_orb_bfm.cpp ${SRC_LIST})
+add_executable(test_orb_matcher test_orb_bfm.cpp ../src/ORBextractor.cc ${SRC_LIST})
 target_link_libraries(test_orb_matcher ${LIBS})
