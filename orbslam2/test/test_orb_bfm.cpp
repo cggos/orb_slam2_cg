@@ -379,7 +379,7 @@ void matches_filter_by_dist(const vector<cv::DMatch> &matches_cv, vector<cv::DMa
 
 int main() {
   cv::Mat img0, img1, img0_gray, img1_gray;
-  enum Dataset { TUM = 0, EuRoC, Oppo } kDataType = TUM;
+  enum Dataset { TUM = 0, EuRoC, Oppo } kDataType = Oppo;
   switch (kDataType) {
     case TUM:
       img0 = cv::imread("../data/tum/1305031102.343233.png");
@@ -390,8 +390,10 @@ int main() {
       img1 = cv::imread("../data/euroc/1403636651713555456.png");
       break;
     case Oppo:
-      img0 = cv::imread("../data/oppo/1938689221901.png");
-      img1 = cv::imread("../data/oppo/1946219841224.png");
+      // img0 = cv::imread("../data/oppo/1938689221901.png");
+      // img1 = cv::imread("../data/oppo/1946219841224.png");
+      img0 = cv::imread("../data/oppo/1937356368932.png");
+      img1 = cv::imread("../data/oppo/1937266404974.png");
       break;
     default:
       break;
