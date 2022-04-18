@@ -35,9 +35,28 @@ class ReadBag {
     int fIniThFAST = 15;
     int fMinThFAST = 7;
     mpORBextractor = new ORBextractor(nFeatures, fScaleFactor, nLevels, fIniThFAST, fMinThFAST);
+    // mask
+    mask_ = cv::imread("/home/cg/Pictures/mask_fisheye_848_800_r390.png", 0);  // in test/data dir
   }
 
   ~ReadBag() {}
+
+  void draw(const std::vector<cv::KeyPoint>& kpts, cv::Mat& img) {
+    const float r = 5;
+    for (int i = 0; i < kpts.size(); i++) {
+      const cv::Point2f& pt = kpts[i].pt;
+      cv::Point2f pt1, pt2;
+      pt1.x = pt.x - r;
+      pt1.y = pt.y - r;
+      pt2.x = pt.x + r;
+      pt2.y = pt.y + r;
+      cv::rectangle(img, pt1, pt2, cv::Scalar(0, 255, 0));
+      cv::circle(img, pt, 2, cv::Scalar(0, 255, 0), -1);
+    }
+    std::stringstream ss;
+    ss << "keypoints: " << kpts.size();
+    cv::putText(img, ss.str(), cv::Point(20, 30), 0, 1, cv::Scalar(0, 0, 255), 3);
+  }
 
   void cb(const sensor_msgs::ImageConstPtr& msg) {
     cv_bridge::CvImageConstPtr cv_ptr;
@@ -55,35 +74,51 @@ class ReadBag {
     else
       img_gray = img.clone();
 
-    std::vector<cv::KeyPoint> mvKeys;
-    cv::Mat mDescriptors;
+    std::vector<cv::KeyPoint> vkpt0_tmp, vkpt0, vkpt1;
+    cv::Mat vdesc0, vdesc1;
     int x0 = 0;
     int x1 = 0;
     std::vector<int> vLapping = {x0, x1};
-    (*mpORBextractor)(img_gray, cv::Mat(), mvKeys, mDescriptors, vLapping);
+    (*mpORBextractor)(img_gray, mask_, vkpt0, vdesc0, vLapping);
+    (*mpORBextractor)(img_gray, cv::Mat(), vkpt1, vdesc1, vLapping);
 
-    std::cout << "mvKeys size: " << mvKeys.size() << std::endl;
-
-    if (img.channels() == 1) cv::cvtColor(img, img, cv::COLOR_GRAY2BGR);
-
-    const float r = 5;
-    for (int i = 0; i < mvKeys.size(); i++) {
-      const cv::Point2f& pt = mvKeys[i].pt;
-      cv::Point2f pt1, pt2;
-      pt1.x = pt.x - r;
-      pt1.y = pt.y - r;
-      pt2.x = pt.x + r;
-      pt2.y = pt.y + r;
-      cv::rectangle(img, pt1, pt2, cv::Scalar(0, 255, 0));
-      cv::circle(img, pt, 2, cv::Scalar(0, 255, 0), -1);
+    // remove points along the circle edge
+    int th = 5;
+    int r = 390 - th;
+    int r2 = r * r;
+    cv::Point2f pt_center(424, 400);
+    vkpt0_tmp.reserve(vkpt0.size());
+    for (const auto& kp : vkpt0) {
+      cv::Point2f dp = kp.pt - pt_center;
+      float dist = dp.dot(dp);
+      if (dist > r2) continue;
+      vkpt0_tmp.push_back(kp);
     }
+    vkpt0 = vkpt0_tmp;
 
-    cv::imshow("orb_detector with mask", img);
-    cv::waitKey(50);
+    std::cout << "====================" << std::endl;
+    std::cout << vkpt0.size() << " -- " << vkpt1.size() << std::endl;
+
+    // show
+    {
+      cv::Mat img0, img1;
+      cv::cvtColor(img, img0, cv::COLOR_GRAY2BGR);
+      cv::cvtColor(img, img1, cv::COLOR_GRAY2BGR);
+
+      draw(vkpt0, img0);
+      draw(vkpt1, img1);
+
+      cv::Mat img_show;
+      cv::hconcat(img0, img1, img_show);
+
+      cv::imshow("orb_detector with mask", img_show);
+      cv::waitKey(100);
+    }
   }
 
  private:
   ORBextractor* mpORBextractor;
+  cv::Mat mask_;
 };
 
 int main(int argc, char* argv[]) {
@@ -95,7 +130,7 @@ int main(int argc, char* argv[]) {
 
   ReadBag rb;
 
-  ros::Subscriber sub = nh.subscribe("/T265/fisheye1/image_raw", 1000, &ReadBag::cb, &rb);
+  ros::Subscriber sub = nh.subscribe("/T265/fisheye1/image_raw", 500, &ReadBag::cb, &rb);
 
   // ros::spin();
   while (ros::ok()) {
