@@ -82,20 +82,6 @@ class ReadBag {
     (*mpORBextractor)(img_gray, mask_, vkpt0, vdesc0, vLapping);
     (*mpORBextractor)(img_gray, cv::Mat(), vkpt1, vdesc1, vLapping);
 
-    // remove points along the circle edge
-    int th = 5;
-    int r = 390 - th;
-    int r2 = r * r;
-    cv::Point2f pt_center(424, 400);
-    vkpt0_tmp.reserve(vkpt0.size());
-    for (const auto& kp : vkpt0) {
-      cv::Point2f dp = kp.pt - pt_center;
-      float dist = dp.dot(dp);
-      if (dist > r2) continue;
-      vkpt0_tmp.push_back(kp);
-    }
-    vkpt0 = vkpt0_tmp;
-
     std::cout << "====================" << std::endl;
     std::cout << vkpt0.size() << " -- " << vkpt1.size() << std::endl;
 

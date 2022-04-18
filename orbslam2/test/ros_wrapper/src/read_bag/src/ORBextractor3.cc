@@ -1124,12 +1124,17 @@ namespace ORB_SLAM3
         int nkeypoints = 0;
         for (int level = 0; level < nlevels; ++level)
             nkeypoints += (int)allKeypoints[level].size();
-        if( nkeypoints == 0 )
-            _descriptors.release();
-        else
-        {
-            _descriptors.create(nkeypoints, 32, CV_8U);
-            descriptors = _descriptors.getMat();
+
+        if(mask.empty()) {
+            if( nkeypoints == 0 )
+                _descriptors.release();
+            else
+            {
+                _descriptors.create(nkeypoints, 32, CV_8U);
+                descriptors = _descriptors.getMat();
+            }
+        } else {
+            descriptors.create(nkeypoints, 32, CV_8U);
         }
 
         //_keypoints.clear();
@@ -1182,6 +1187,36 @@ namespace ORB_SLAM3
                 i++;
             }
         }
+
+        // [cggos] remove points along the circle edge of mask
+        if(!mask.empty()) {
+            std::vector<cv::KeyPoint> vkpt_tmp;
+            vkpt_tmp.reserve(_keypoints.size());
+            std::vector<int> vidx;
+            vidx.reserve(_keypoints.size());
+            int th = 5;
+            int r = mask.rows / 2 - 10 - th;
+            int r2 = r * r;
+            cv::Point2f pt_center(mask.cols / 2, mask.cols / 2);
+            for (int i=0; i<_keypoints.size(); i++) {
+              cv::Point2f dp = _keypoints[i].pt - pt_center;
+              float dist = dp.dot(dp);
+              if (dist > r2) continue;
+              vkpt_tmp.push_back(_keypoints[i]);
+              vidx.push_back(i);
+            }
+            _keypoints = vkpt_tmp;
+
+            cv::Mat desc;
+            if(_keypoints.size() == 0)
+                _descriptors.release();
+            else {
+                _descriptors.create(_keypoints.size(), 32, CV_8U);
+                desc = _descriptors.getMat();
+            }
+            for(int i=0; i<vidx.size(); i++) descriptors.row(vidx[i]).copyTo(desc.row(i));
+        }
+
         //cout << "[ORBextractor]: extracted " << _keypoints.size() << " KeyPoints" << endl;
         return monoIndex;
     }
