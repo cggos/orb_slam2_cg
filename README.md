@@ -26,7 +26,16 @@ modified version from [raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2) 
   ```
 * G2O
   ```sh
-  git clone https://github.com/RainerKuemmerle/g2o
+  # git clone https://github.com/RainerKuemmerle/g2o
+
+  cd Thirdparty
+  svn checkout https://github.com/raulmur/ORB_SLAM2/trunk/Thirdparty/g2o
+
+  cd g2o
+  mkdir build
+  cd build
+  cmake .. -DCMAKE_BUILD_TYPE=Release
+  make -j4
   ```
 * DBoW2 
   ```sh
