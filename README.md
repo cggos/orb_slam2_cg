@@ -77,6 +77,10 @@ modified version from [raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2) 
       right:=/mynteye/right/image_raw        
   ```
 
+# Train DBoW2/DBoW3 Voc with your data
+
+* https://github.com/cggos/slamkit/tree/master/visual_vocabulary/dbow_demos
+
 # Run
 
 * without ROS
