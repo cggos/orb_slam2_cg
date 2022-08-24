@@ -28,6 +28,7 @@
 #include "ORBextractor.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
+#include "CameraModels/KannalaBrandt8.h"
 
 #include <mutex>
 
@@ -180,6 +181,12 @@ public:
     const std::vector<float> mvuRight; // negative value for monocular points
     const std::vector<float> mvDepth; // negative value for monocular points
     const cv::Mat mDescriptors;
+    
+    // Fisheye
+    cv::Mat mfeT;
+    GeometricCamera* mpCameraFE;
+    std::vector<cv::KeyPoint> mvKeysFisheye;
+    std::vector<int> mvKeysIdxFisheyeStereo;
 
     //BoW
     DBoW2::BowVector mBowVec;

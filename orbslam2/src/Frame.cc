@@ -100,6 +100,120 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     AssignFeaturesToGrid();
 }
 
+Frame::Frame(
+    const cv::Mat &imGray, const cv::Mat &imDepth, const cv::Mat &imFisheye, const double &timeStamp, 
+    ORBextractor *extractor, ORBextractor* extractorFisheye, ORBVocabulary *voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, 
+    const cv::Mat &feT, GeometricCamera* pCamera)
+    : mpORBvocabulary(voc), mpORBextractorLeft(extractor), mpORBextractorRight(static_cast<ORBextractor *>(NULL)), mpORBextractorFisheye(extractorFisheye), 
+      mTimeStamp(timeStamp), mK(K.clone()), mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
+      mfeT(feT.clone()), mpCameraFE(pCamera) {
+    // Frame ID
+    mnId = nNextId++;
+
+    // Scale Level Info
+    mnScaleLevels = mpORBextractorLeft->GetLevels();
+    mfScaleFactor = mpORBextractorLeft->GetScaleFactor();
+    mfLogScaleFactor = log(mfScaleFactor);
+    mvScaleFactors = mpORBextractorLeft->GetScaleFactors();
+    mvInvScaleFactors = mpORBextractorLeft->GetInverseScaleFactors();
+    mvLevelSigma2 = mpORBextractorLeft->GetScaleSigmaSquares();
+    mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
+
+    // ORB extraction
+    // ExtractORB(0, imGray);
+    (*mpORBextractorLeft)(imGray, cv::Mat(), mvKeys, mDescriptors);
+    (*mpORBextractorFisheye)(imFisheye, cv::Mat(), mvKeysFisheye, mDescriptorsFisheye);
+
+    N = mvKeys.size();
+
+    if (mvKeys.empty())
+        return;
+
+    UndistortKeyPoints();
+
+    ComputeStereoFromRGBD(imDepth);
+
+    // match: left -- fisheye 
+    vector<cv::DMatch> matches_cv, matches_cv_good;
+    {
+      cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("BruteForce-Hamming");
+      matcher->match(mDescriptors, mDescriptorsFisheye, matches_cv);
+
+      double min_dist = 10000, max_dist = 0;
+      for (int i = 0; i < matches_cv.size(); i++) {
+        double dist = matches_cv[i].distance;
+        if (dist < min_dist) min_dist = dist;
+        if (dist > max_dist) max_dist = dist;
+      }
+      for (int i = 0; i < matches_cv.size(); i++)
+        if (matches_cv[i].distance <= max(2 * min_dist, 30.0)) matches_cv_good.push_back(matches_cv[i]);
+    }
+    mvKeysIdxFisheyeStereo.resize(N, -1);
+    for(const auto &match : matches_cv_good) mvKeysIdxFisheyeStereo[match.queryIdx] = match.trainIdx;
+
+    // TODO
+    // 1. map 4 points of left img to Fisheye
+    // 2. check match outlier
+    // 3. split kps in fisheye into 2 parts
+
+    // draw
+    {
+      float s = 0.5;
+      cv::Size sz = cv::Size(imGray.cols*s, imGray.rows*s);
+      cv::Mat img_small(sz, CV_8UC1);
+      cv::resize(imGray, img_small, cv::Size(imGray.cols*s, imGray.rows*s), 0, 0, cv::INTER_LINEAR);
+      
+      int w = imFisheye.cols;
+      int h = imFisheye.rows;
+      int offset_x = w - img_small.cols;
+      int offset_y = (h - img_small.rows) / 2;
+
+      cv::Mat img_left(cv::Size(w, h), CV_8UC1, cv::Scalar(255));
+      img_small.copyTo(img_left(cv::Rect(offset_x, offset_y, img_small.cols, img_small.rows)));
+      cv::Mat img_fisheye;
+      cv::cvtColor(img_left, img_left, cv::COLOR_GRAY2BGR);
+      cv::cvtColor(imFisheye, img_fisheye, cv::COLOR_GRAY2BGR);
+
+      std::vector<cv::KeyPoint> keys0 = mvKeys;
+      for(auto &kpt : keys0) {
+        kpt.pt *= s;
+        kpt.pt += cv::Point2f(offset_x, offset_y);
+      }
+
+      cv::Mat img_out;
+      cv::drawMatches(img_left, keys0, img_fisheye, mvKeysFisheye, matches_cv_good, img_out, cv::Scalar::all(-1), cv::Scalar(255, 0, 0));
+      std::stringstream ss0, ss1;
+      ss0 << "(" << keys0.size() << " - " << mvKeysFisheye.size() << " : " << matches_cv_good.size() << " )";
+      cv::putText(img_out, ss0.str(), cv::Point(20, 30), 0, 1, cv::Scalar(0, 0, 255), 3);
+      cv::imshow("left--fisheye", img_out);
+      cv::waitKey(0);
+    }
+
+    mvpMapPoints = vector<MapPoint *>(N, static_cast<MapPoint *>(NULL));
+    mvbOutlier = vector<bool>(N, false);
+
+    // This is done only for the first Frame (or after a change in the calibration)
+    if (mbInitialComputations) {
+        ComputeImageBounds(imGray);
+
+        mfGridElementWidthInv = static_cast<float>(FRAME_GRID_COLS) / static_cast<float>(mnMaxX - mnMinX);
+        mfGridElementHeightInv = static_cast<float>(FRAME_GRID_ROWS) / static_cast<float>(mnMaxY - mnMinY);
+
+        fx = K.at<float>(0, 0);
+        fy = K.at<float>(1, 1);
+        cx = K.at<float>(0, 2);
+        cy = K.at<float>(1, 2);
+        invfx = 1.0f / fx;
+        invfy = 1.0f / fy;
+
+        mbInitialComputations = false;
+    }
+
+    mb = mbf / fx;
+
+    AssignFeaturesToGrid();
+}
+
 Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor *extractor, ORBVocabulary *voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
     : mpORBvocabulary(voc), mpORBextractorLeft(extractor), mpORBextractorRight(static_cast<ORBextractor *>(NULL)), mTimeStamp(timeStamp), mK(K.clone()), mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth) {
     // Frame ID

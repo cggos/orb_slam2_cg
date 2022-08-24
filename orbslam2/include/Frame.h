@@ -29,6 +29,7 @@
 #include "ORBVocabulary.h"
 #include "KeyFrame.h"
 #include "ORBextractor.h"
+#include "CameraModels/KannalaBrandt8.h"
 
 #include <opencv2/opencv.hpp>
 
@@ -53,6 +54,12 @@ public:
 
     // Constructor for RGB-D cameras.
     Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    
+    // RGB-D Fisheye
+    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const cv::Mat &imFisheye, const double &timeStamp, 
+        ORBextractor* extractor, ORBextractor* extractorFisheye, ORBVocabulary* voc, 
+        cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth,
+        const cv::Mat &feT, GeometricCamera* pCamera);
 
     // Constructor for Monocular cameras.
     Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
@@ -103,7 +110,7 @@ public:
     ORBVocabulary* mpORBvocabulary;
 
     // Feature extractor. The right is used only in the stereo case.
-    ORBextractor* mpORBextractorLeft, *mpORBextractorRight;
+    ORBextractor* mpORBextractorLeft, *mpORBextractorRight, *mpORBextractorFisheye;
 
     // Frame timestamp.
     double mTimeStamp;
@@ -117,6 +124,10 @@ public:
     static float invfx;
     static float invfy;
     cv::Mat mDistCoef;
+
+    // T265 Fisheye Cam
+    cv::Mat mfeT;
+    GeometricCamera* mpCameraFE;
 
     // Stereo baseline multiplied by fx.
     float mbf;
@@ -141,13 +152,16 @@ public:
     // "Monocular" keypoints have a negative value.
     std::vector<float> mvuRight;
     std::vector<float> mvDepth;
+    
+    std::vector<cv::KeyPoint> mvKeysFisheye;
+    std::vector<int> mvKeysIdxFisheyeStereo;
 
     // Bag of Words Vector structures.
     DBoW2::BowVector mBowVec;
     DBoW2::FeatureVector mFeatVec;
 
     // ORB descriptor, each row associated to a keypoint.
-    cv::Mat mDescriptors, mDescriptorsRight;
+    cv::Mat mDescriptors, mDescriptorsRight, mDescriptorsFisheye;
 
     // MapPoints associated to keypoints, NULL pointer if no association.
     std::vector<MapPoint*> mvpMapPoints;

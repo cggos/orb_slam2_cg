@@ -91,6 +91,8 @@ list(APPEND SRC_LIST
    src/Initializer.cc
    src/Viewer.cc
    src/OrbLine.cc
+   src/CameraModels/KannalaBrandt8.cpp
+   src/G2oTypes.cc
 )
 if(WITH_ORB_C)
    add_definitions(-DWITH_ORB_C)

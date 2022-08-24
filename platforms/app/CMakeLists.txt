@@ -26,6 +26,9 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
+add_executable(rgbd_tum_fisheye RGB-D/rgbd_tum_fisheye.cc)
+target_link_libraries(rgbd_tum_fisheye orbslam2_core)
+
 add_executable(rgbd_tum RGB-D/rgbd_tum.cc)
 target_link_libraries(rgbd_tum orbslam2_core)
 

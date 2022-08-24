@@ -37,6 +37,7 @@
 #include "ORBextractor.h"
 #include "System.h"
 #include "Viewer.h"
+#include "CameraModels/KannalaBrandt8.h"
 
 namespace ORB_SLAM2 {
 
@@ -54,7 +55,7 @@ class Tracking {
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
     cv::Mat GrabImageStereo(const cv::Mat& imRectLeft, const cv::Mat& imRectRight, const double& timestamp);
-    cv::Mat GrabImageRGBD(const cv::Mat& imRGB, const cv::Mat& imD, const double& timestamp);
+    cv::Mat GrabImageRGBD(const cv::Mat& imRGB, const cv::Mat& imD, const double& timestamp, cv::Mat fisheye = cv::Mat());
     cv::Mat GrabImageMonocular(const cv::Mat& im, const double& timestamp);
 
     void SetLocalMapper(LocalMapping* pLocalMapper);
@@ -148,7 +149,7 @@ class Tracking {
     LoopClosing* mpLoopClosing;
 
     //ORB
-    ORBextractor *mpORBextractorLeft, *mpORBextractorRight;
+    ORBextractor *mpORBextractorLeft, *mpORBextractorRight, *mpORBextractorFisheye;
     ORBextractor* mpIniORBextractor;
 
     //BoW
@@ -178,6 +179,10 @@ class Tracking {
     cv::Mat mK;
     cv::Mat mDistCoef;
     float mbf;
+
+    // T265 Fisheye Cam
+    cv::Mat mfeT;
+    GeometricCamera* mpCameraFE;
 
     //New KeyFrame rules (according to fps)
     int mMinFrames;

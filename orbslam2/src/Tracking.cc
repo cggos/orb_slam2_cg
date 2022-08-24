@@ -71,6 +71,54 @@ Tracking::Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer,
     if (fps == 0)
         fps = 30;
 
+    // Fisheye Cam
+    if(sensor == System::RGBDFisheye) {
+        cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
+        float fx = fSettings["Camera1.fx"];
+        float fy = fSettings["Camera1.fy"];
+        float cx = fSettings["Camera1.cx"];
+        float cy = fSettings["Camera1.cy"];
+        float k1 = fSettings["Camera1.k1"];
+        float k2 = fSettings["Camera1.k2"];
+        float k3 = fSettings["Camera1.k3"];
+        float k4 = fSettings["Camera1.k4"];
+
+        // cv::Mat K = cv::Mat::eye(3, 3, CV_32F);
+        // K.at<float>(0, 0) = fx;
+        // K.at<float>(1, 1) = fy;
+        // K.at<float>(0, 2) = cx;
+        // K.at<float>(1, 2) = cy;
+        // K.copyTo(mfeK);
+        
+        // cv::Mat DistCoef(4, 1, CV_32F);
+        // DistCoef.at<float>(0) = k1;
+        // DistCoef.at<float>(1) = k2;
+        // DistCoef.at<float>(2) = k3;
+        // DistCoef.at<float>(3) = k4;
+        // DistCoef.copyTo(mfeD);
+
+        cv::Mat mT = cv::Mat::eye(4, 4, CV_32F);
+        fSettings["Camera1.T_c1_c2"] >> mT;
+        mT.copyTo(mfeT);
+            
+        std::vector<float> vCamCalib{fx,fy,cx,cy,k1,k2,k3,k4};
+        mpCameraFE = new KannalaBrandt8(vCamCalib);
+
+        cout << endl
+             << "Fisheye Parameters: " << endl;
+
+        cout << "- fx: " << fx << endl;
+        cout << "- fy: " << fy << endl;
+        cout << "- cx: " << cx << endl;
+        cout << "- cy: " << cy << endl;
+        cout << "- k1: " << k1 << endl;
+        cout << "- k2: " << k2 << endl;
+        cout << "- k3: " << k3 << endl;
+        cout << "- k4: " << k4 << endl;
+
+        cout << "- T:\n" << mfeT << endl;
+    }
+
     // Max/Min Frames to insert keyframes and to check relocalisation
     mMinFrames = 0;
     mMaxFrames = fps;
@@ -112,6 +160,9 @@ Tracking::Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer,
 
     if (sensor == System::MONOCULAR)
         mpIniORBextractor = new ORBextractor(2 * nFeatures, fScaleFactor, nLevels, fIniThFAST, fMinThFAST);
+
+    if (sensor == System::RGBDFisheye)
+        mpORBextractorFisheye = new ORBextractor(nFeatures, fScaleFactor, nLevels, fIniThFAST, fMinThFAST);
 
     cout << endl
          << "ORB Extractor Parameters: " << endl;
@@ -177,7 +228,7 @@ cv::Mat Tracking::GrabImageStereo(const cv::Mat& imRectLeft, const cv::Mat& imRe
     return mCurrentFrame.mTcw.clone();
 }
 
-cv::Mat Tracking::GrabImageRGBD(const cv::Mat& imRGB, const cv::Mat& imD, const double& timestamp) {
+cv::Mat Tracking::GrabImageRGBD(const cv::Mat& imRGB, const cv::Mat& imD, const double& timestamp, cv::Mat fisheye) {
     mImGray = imRGB;
     cv::Mat imDepth = imD;
 
@@ -196,7 +247,11 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat& imRGB, const cv::Mat& imD, const 
     if ((fabs(mDepthMapFactor - 1.0f) > 1e-5) || imDepth.type() != CV_32F)
         imDepth.convertTo(imDepth, CV_32F, mDepthMapFactor);
 
-    mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth);
+    if(mSensor == System::RGBD)
+        mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth);
+    
+    if(mSensor == System::RGBDFisheye)
+        mCurrentFrame = Frame(mImGray, imDepth, fisheye, timestamp, mpORBextractorLeft, mpORBextractorFisheye, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth, mfeT, mpCameraFE);
 
     Track();
 
@@ -239,7 +294,7 @@ void Tracking::Track() {
     unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
 
     if (mState == NOT_INITIALIZED) {
-        if (mSensor == System::STEREO || mSensor == System::RGBD)
+        if (mSensor == System::STEREO || mSensor == System::RGBD || mSensor == System::RGBDFisheye)
             StereoInitialization();
         else
             MonocularInitialization();
@@ -1027,7 +1082,7 @@ void Tracking::SearchLocalPoints() {
     if (nToMatch > 0) {
         ORBmatcher matcher(0.8);
         int th = 1;
-        if (mSensor == System::RGBD)
+        if (mSensor == System::RGBD || mSensor == System::RGBDFisheye)
             th = 3;
         // If the camera has been relocalised recently, perform a coarser search
         if (mCurrentFrame.mnId < mnLastRelocFrameId + 2)
