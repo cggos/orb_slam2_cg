@@ -88,6 +88,16 @@ int main(int argc, char **argv)
             return 1;
         }
 
+#if 1 
+        // show depth image
+        cv::Mat mat_depth8;
+        double min, max;
+        cv::minMaxLoc(imD, &min, &max);
+        imD.convertTo(mat_depth8, CV_8UC1, 255.0/(max-min), -255.0*min/(max-min));
+        cv::imshow("depth", mat_depth8);
+        cv::waitKey(10);
+#endif
+
 #if 0
         char name_color[16];
         char name_depth[16];
