@@ -9,3 +9,6 @@ dataset_dir="$1"
     ../RGB-D/TUM1.yaml \
     $dataset_dir \
     $dataset_dir/associate.txt
+
+# gdb
+# set args ../../../Vocabulary/ORBvoc.txt ../RGB-D/TUM1.yaml /home/cg/projects/dataset/tum/rgbd_dataset_freiburg1_xyz /home/cg/projects/dataset/tum/rgbd_dataset_freiburg1_xyz/associate.txt

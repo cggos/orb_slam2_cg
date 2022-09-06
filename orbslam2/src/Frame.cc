@@ -33,14 +33,29 @@ float Frame::cx, Frame::cy, Frame::fx, Frame::fy, Frame::invfx, Frame::invfy;
 float Frame::mnMinX, Frame::mnMinY, Frame::mnMaxX, Frame::mnMaxY;
 float Frame::mfGridElementWidthInv, Frame::mfGridElementHeightInv;
 
+float Frame::mnMinXFisheye, Frame::mnMinYFisheye, Frame::mnMaxXFisheye, Frame::mnMaxYFisheye;
+float Frame::mfGridElementWidthInvFisheye, Frame::mfGridElementHeightInvFisheye;
+
 Frame::Frame() {}
 
 //Copy Constructor
 Frame::Frame(const Frame &frame)
-    : mpORBvocabulary(frame.mpORBvocabulary), mpORBextractorLeft(frame.mpORBextractorLeft), mpORBextractorRight(frame.mpORBextractorRight), mTimeStamp(frame.mTimeStamp), mK(frame.mK.clone()), mDistCoef(frame.mDistCoef.clone()), mbf(frame.mbf), mb(frame.mb), mThDepth(frame.mThDepth), N(frame.N), mvKeys(frame.mvKeys), mvKeysRight(frame.mvKeysRight), mvKeysUn(frame.mvKeysUn), mvuRight(frame.mvuRight), mvDepth(frame.mvDepth), mBowVec(frame.mBowVec), mFeatVec(frame.mFeatVec), mDescriptors(frame.mDescriptors.clone()), mDescriptorsRight(frame.mDescriptorsRight.clone()), mvpMapPoints(frame.mvpMapPoints), mvbOutlier(frame.mvbOutlier), mnId(frame.mnId), mpReferenceKF(frame.mpReferenceKF), mnScaleLevels(frame.mnScaleLevels), mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor), mvScaleFactors(frame.mvScaleFactors), mvInvScaleFactors(frame.mvInvScaleFactors), mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2) {
+    : mpORBvocabulary(frame.mpORBvocabulary), mpORBextractorLeft(frame.mpORBextractorLeft), mpORBextractorRight(frame.mpORBextractorRight), 
+      mTimeStamp(frame.mTimeStamp), mK(frame.mK.clone()), mDistCoef(frame.mDistCoef.clone()), mbf(frame.mbf), mb(frame.mb), mThDepth(frame.mThDepth), 
+      N(frame.N), mvKeys(frame.mvKeys), mvKeysRight(frame.mvKeysRight), mvKeysUn(frame.mvKeysUn), mvuRight(frame.mvuRight), mvDepth(frame.mvDepth), 
+      mBowVec(frame.mBowVec), mFeatVec(frame.mFeatVec), mDescriptors(frame.mDescriptors.clone()), mDescriptorsRight(frame.mDescriptorsRight.clone()), 
+      mBowVecFisheye(frame.mBowVecFisheye), mFeatVecFisheye(frame.mFeatVecFisheye), mDescriptorsFisheye(frame.mDescriptorsFisheye.clone()),
+      mvpMapPoints(frame.mvpMapPoints), mvbOutlier(frame.mvbOutlier), mnId(frame.mnId), mpReferenceKF(frame.mpReferenceKF),
+      mnScaleLevels(frame.mnScaleLevels), mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor),
+      mvScaleFactors(frame.mvScaleFactors), mvInvScaleFactors(frame.mvInvScaleFactors),
+      mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2) {
     for (int i = 0; i < FRAME_GRID_COLS; i++)
         for (int j = 0; j < FRAME_GRID_ROWS; j++)
             mGrid[i][j] = frame.mGrid[i][j];
+    
+    for (int i = 0; i < FRAME_GRID_RCS_FE; i++)
+        for (int j = 0; j < FRAME_GRID_RCS_FE; j++)
+            mGridFisheye[i][j] = frame.mGridFisheye[i][j];
 
     if (!frame.mTcw.empty())
         SetPose(frame.mTcw);
@@ -125,6 +140,7 @@ Frame::Frame(
     (*mpORBextractorFisheye)(imFisheye, cv::Mat(), mvKeysFisheye, mDescriptorsFisheye);
 
     N = mvKeys.size();
+    N_Fisheye = mvKeysFisheye.size();
 
     if (mvKeys.empty())
         return;
@@ -186,18 +202,27 @@ Frame::Frame(
       ss0 << "(" << keys0.size() << " - " << mvKeysFisheye.size() << " : " << matches_cv_good.size() << " )";
       cv::putText(img_out, ss0.str(), cv::Point(20, 30), 0, 1, cv::Scalar(0, 0, 255), 3);
       cv::imshow("left--fisheye", img_out);
-      cv::waitKey(0);
+    //   cv::waitKey(0);
     }
 
-    mvpMapPoints = vector<MapPoint *>(N, static_cast<MapPoint *>(NULL));
-    mvbOutlier = vector<bool>(N, false);
+    mvpMapPoints = vector<MapPoint *>(N + N_Fisheye, static_cast<MapPoint *>(NULL));
+    mvbOutlier = vector<bool>(N + N_Fisheye, false);
 
     // This is done only for the first Frame (or after a change in the calibration)
     if (mbInitialComputations) {
         ComputeImageBounds(imGray);
+        {
+            mnMinXFisheye = 0.0f;
+            mnMaxXFisheye = imFisheye.cols;
+            mnMinYFisheye = 0.0f;
+            mnMaxYFisheye = imFisheye.rows;
+        }
 
         mfGridElementWidthInv = static_cast<float>(FRAME_GRID_COLS) / static_cast<float>(mnMaxX - mnMinX);
         mfGridElementHeightInv = static_cast<float>(FRAME_GRID_ROWS) / static_cast<float>(mnMaxY - mnMinY);
+        
+        mfGridElementWidthInvFisheye = static_cast<float>(FRAME_GRID_RCS_FE) / static_cast<float>(mnMaxX - mnMinX);
+        mfGridElementHeightInvFisheye = static_cast<float>(FRAME_GRID_RCS_FE) / static_cast<float>(mnMaxY - mnMinY);
 
         fx = K.at<float>(0, 0);
         fy = K.at<float>(1, 1);
@@ -331,6 +356,20 @@ void Frame::AssignFeaturesToGrid() {
         if (PosInGrid(kp, nGridPosX, nGridPosY))
             mGrid[nGridPosX][nGridPosY].push_back(i);
     }
+
+    if(N_Fisheye == 0) return;
+    
+    nReserve = 0.5f * N_Fisheye / (FRAME_GRID_RCS_FE * FRAME_GRID_RCS_FE);
+    for (unsigned int i = 0; i < FRAME_GRID_RCS_FE; i++)
+        for (unsigned int j = 0; j < FRAME_GRID_RCS_FE; j++)
+            mGridFisheye[i][j].reserve(nReserve);
+    
+    for (int i = 0; i < N; i++) {
+        const cv::KeyPoint &kp = mvKeysFisheye[i];
+        int nGridPosX, nGridPosY;
+        if (PosInGrid(kp, nGridPosX, nGridPosY, true))
+            mGridFisheye[nGridPosX][nGridPosY].push_back(i);
+    }
 }
 
 void Frame::ExtractORB(int flag, const cv::Mat &im) {
@@ -353,6 +392,12 @@ void Frame::UpdatePoseMatrices() {
 }
 
 bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit) {
+    // TODO
+    if(pMP->is_fisheye_) {
+        pMP->mbTrackInView = true;
+        return true;
+    }
+
     pMP->mbTrackInView = false;
 
     // 3D in absolute coordinates
@@ -459,13 +504,70 @@ vector<size_t> Frame::GetFeaturesInArea(const float &x, const float &y, const fl
     return vIndices;
 }
 
-bool Frame::PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY) {
-    posX = round((kp.pt.x - mnMinX) * mfGridElementWidthInv);
-    posY = round((kp.pt.y - mnMinY) * mfGridElementHeightInv);
+vector<size_t> Frame::GetFeaturesInAreaFisheye(const float &x, const float &y, const float &r, const int minLevel, const int maxLevel) const {
+    vector<size_t> vIndices;
+    vIndices.reserve(N_Fisheye);
 
-    //Keypoint's coordinates are undistorted, which could cause to go out of the image
-    if (posX < 0 || posX >= FRAME_GRID_COLS || posY < 0 || posY >= FRAME_GRID_ROWS)
-        return false;
+    const int nMinCellX = max(0, (int)floor((x - mnMinXFisheye - r) * mfGridElementWidthInvFisheye));
+    if (nMinCellX >= FRAME_GRID_RCS_FE)
+        return vIndices;
+
+    const int nMaxCellX = min((int)FRAME_GRID_RCS_FE - 1, (int)ceil((x - mnMinXFisheye + r) * mfGridElementWidthInvFisheye));
+    if (nMaxCellX < 0)
+        return vIndices;
+
+    const int nMinCellY = max(0, (int)floor((y - mnMinYFisheye - r) * mfGridElementHeightInvFisheye));
+    if (nMinCellY >= FRAME_GRID_RCS_FE)
+        return vIndices;
+
+    const int nMaxCellY = min((int)FRAME_GRID_RCS_FE - 1, (int)ceil((y - mnMinYFisheye + r) * mfGridElementHeightInvFisheye));
+    if (nMaxCellY < 0)
+        return vIndices;
+
+    const bool bCheckLevels = (minLevel > 0) || (maxLevel >= 0);
+
+    for (int ix = nMinCellX; ix <= nMaxCellX; ix++) {
+        for (int iy = nMinCellY; iy <= nMaxCellY; iy++) {
+            const vector<size_t> vCell = mGridFisheye[ix][iy];
+            if (vCell.empty())
+                continue;
+
+            for (size_t j = 0, jend = vCell.size(); j < jend; j++) {
+                const cv::KeyPoint &kpUn = mvKeysFisheye[vCell[j]];
+                if (bCheckLevels) {
+                    if (kpUn.octave < minLevel)
+                        continue;
+                    if (maxLevel >= 0)
+                        if (kpUn.octave > maxLevel)
+                            continue;
+                }
+
+                const float distx = kpUn.pt.x - x;
+                const float disty = kpUn.pt.y - y;
+
+                if (fabs(distx) < r && fabs(disty) < r)
+                    vIndices.push_back(vCell[j]);
+            }
+        }
+    }
+
+    return vIndices;
+}
+
+bool Frame::PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY, bool is_fisheye) {
+    if(is_fisheye) {
+        posX = round((kp.pt.x - mnMinXFisheye) * mfGridElementWidthInvFisheye);
+        posY = round((kp.pt.y - mnMinYFisheye) * mfGridElementHeightInvFisheye);
+        //Keypoint's coordinates are undistorted, which could cause to go out of the image
+        if (posX < 0 || posX >= FRAME_GRID_RCS_FE || posY < 0 || posY >= FRAME_GRID_RCS_FE)
+            return false;
+    } else {
+        posX = round((kp.pt.x - mnMinX) * mfGridElementWidthInv);
+        posY = round((kp.pt.y - mnMinY) * mfGridElementHeightInv);
+        //Keypoint's coordinates are undistorted, which could cause to go out of the image
+        if (posX < 0 || posX >= FRAME_GRID_COLS || posY < 0 || posY >= FRAME_GRID_ROWS)
+            return false;
+    }
 
     return true;
 }
@@ -474,6 +576,11 @@ void Frame::ComputeBoW() {
     if (mBowVec.empty()) {
         vector<cv::Mat> vCurrentDesc = Converter::toDescriptorVector(mDescriptors);
         mpORBvocabulary->transform(vCurrentDesc, mBowVec, mFeatVec, 4);
+    }
+    
+    if (N_Fisheye>0 && mBowVecFisheye.empty()) {
+        vector<cv::Mat> vCurrentDesc = Converter::toDescriptorVector(mDescriptorsFisheye);
+        mpORBvocabulary->transform(vCurrentDesc, mBowVecFisheye, mFeatVecFisheye, 4);
     }
 }
 

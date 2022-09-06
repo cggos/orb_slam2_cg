@@ -256,7 +256,7 @@ void MapPoint::ComputeDistinctiveDescriptors()
         unique_lock<mutex> lock1(mMutexFeatures);
         if(mbBad)
             return;
-        observations=mObservations;
+        observations= mObservations;
     }
 
     if(observations.empty())
@@ -269,7 +269,10 @@ void MapPoint::ComputeDistinctiveDescriptors()
         KeyFrame* pKF = mit->first;
 
         if(!pKF->isBad())
-            vDescriptors.push_back(pKF->mDescriptors.row(mit->second));
+            if(is_fisheye_)
+                vDescriptors.push_back(pKF->mDescriptorsFisheye.row(mit->second));
+            else
+                vDescriptors.push_back(pKF->mDescriptors.row(mit->second));
     }
 
     if(vDescriptors.empty())

@@ -38,7 +38,7 @@ class ORBmatcher
 {    
 public:
 
-    ORBmatcher(float nnratio=0.6, bool checkOri=true);
+    ORBmatcher(float nnratio=0.6, bool checkOri=true, GeometricCamera* pCameraFE = nullptr);
 
     // Computes the Hamming distance between two ORB descriptors
     static int DescriptorDistance(const cv::Mat &a, const cv::Mat &b);
@@ -72,13 +72,16 @@ public:
     int SearchForTriangulation(KeyFrame *pKF1, KeyFrame* pKF2, cv::Mat F12,
                                std::vector<pair<size_t, size_t> > &vMatchedPairs, const bool bOnlyStereo);
 
-    // Brute force matching for SearchByBoW()
-    int SearchByBFM(KeyFrame *pKF, Frame &F, std::vector<MapPoint*> &vpMapPointMatches);
-    int SearchByBFM(KeyFrame *pKF1, KeyFrame* pKF2, std::vector<MapPoint*> &vpMatches12);
+    int SearchForTriangulationFisheye(KeyFrame *pKF1, KeyFrame* pKF2, std::vector<pair<size_t, size_t> > &vMatchedPairs);
 
     // Brute force matching for SearchForTriangulation()
     int SearchForTriangulationBFM(KeyFrame *pKF1, KeyFrame* pKF2, cv::Mat F12,
                                   std::vector<pair<size_t, size_t> > &vMatchedPairs, const bool bOnlyStereo);
+
+    // Brute force matching for SearchByBoW()
+    int SearchByBFM(KeyFrame *pKF, Frame &F, std::vector<MapPoint*> &vpMapPointMatches);
+    int SearchByBFM(KeyFrame *pKF1, KeyFrame* pKF2, std::vector<MapPoint*> &vpMatches12);
+
 
     // Search matches between MapPoints seen in KF1 and KF2 transforming by a Sim3 [s12*R12|t12]
     // In the stereo and RGB-D case, s12=1
@@ -95,6 +98,8 @@ public:
     static const int TH_LOW;
     static const int TH_HIGH;
     static const int HISTO_LENGTH;
+
+    GeometricCamera* mpCameraFE;
 
 
 protected:

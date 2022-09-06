@@ -174,6 +174,7 @@ public:
 
     // Number of KeyPoints
     const int N;
+    const int N_Fisheye = 0;
 
     // KeyPoints, stereo coordinate and descriptors (all associated by an index)
     const std::vector<cv::KeyPoint> mvKeys;
@@ -191,6 +192,10 @@ public:
     //BoW
     DBoW2::BowVector mBowVec;
     DBoW2::FeatureVector mFeatVec;
+
+    DBoW2::BowVector mBowVecFisheye;
+    DBoW2::FeatureVector mFeatVecFisheye;
+    const cv::Mat mDescriptorsFisheye;
 
     // Pose relative to parent (this is computed when bad flag is activated)
     cv::Mat mTcp;

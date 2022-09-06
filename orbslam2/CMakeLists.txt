@@ -10,8 +10,8 @@ add_definitions(-w)
 option(WITH_ORB_C "WITH_ORB_C" OFF)
 option(WITH_ORB_BFM "WITH_ORB_BFM" OFF)
 
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -Wall  -O3 -march=native")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -Wall  -O3 -march=native -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native -g")
 
 # # Check C++11 or C++0x support
 # include(CheckCXXCompilerFlag)

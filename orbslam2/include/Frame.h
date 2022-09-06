@@ -38,6 +38,8 @@ namespace ORB_SLAM2
 #define FRAME_GRID_ROWS 48
 #define FRAME_GRID_COLS 64
 
+#define FRAME_GRID_RCS_FE 80 // Fisheye
+
 class MapPoint;
 class KeyFrame;
 
@@ -91,9 +93,10 @@ public:
     bool isInFrustum(MapPoint* pMP, float viewingCosLimit);
 
     // Compute the cell of a keypoint (return false if outside the grid)
-    bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
+    bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY, bool is_fisheye = false);
 
     vector<size_t> GetFeaturesInArea(const float &x, const float  &y, const float  &r, const int minLevel=-1, const int maxLevel=-1) const;
+    vector<size_t> GetFeaturesInAreaFisheye(const float &x, const float  &y, const float  &r, const int minLevel=-1, const int maxLevel=-1) const;
 
     // Search a match for each keypoint in the left image to a keypoint in the right image.
     // If there is a match, depth is computed and the right coordinate associated to the left keypoint is stored.
@@ -126,7 +129,7 @@ public:
     cv::Mat mDistCoef;
 
     // T265 Fisheye Cam
-    cv::Mat mfeT;
+    cv::Mat mfeT; // Fisheye to RGB Cam
     GeometricCamera* mpCameraFE;
 
     // Stereo baseline multiplied by fx.
@@ -141,6 +144,8 @@ public:
 
     // Number of KeyPoints.
     int N;
+    
+    int N_Fisheye = 0;
 
     // Vector of keypoints (original for visualization) and undistorted (actually used by the system).
     // In the stereo case, mvKeysUn is redundant as images must be rectified.
@@ -159,6 +164,9 @@ public:
     // Bag of Words Vector structures.
     DBoW2::BowVector mBowVec;
     DBoW2::FeatureVector mFeatVec;
+    
+    DBoW2::BowVector mBowVecFisheye;
+    DBoW2::FeatureVector mFeatVecFisheye;
 
     // ORB descriptor, each row associated to a keypoint.
     cv::Mat mDescriptors, mDescriptorsRight, mDescriptorsFisheye;
@@ -173,6 +181,10 @@ public:
     static float mfGridElementWidthInv;
     static float mfGridElementHeightInv;
     std::vector<std::size_t> mGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS];
+    
+    static float mfGridElementWidthInvFisheye;
+    static float mfGridElementHeightInvFisheye;
+    std::vector<std::size_t> mGridFisheye[FRAME_GRID_RCS_FE][FRAME_GRID_RCS_FE];
 
     // Camera pose.
     cv::Mat mTcw;
@@ -198,6 +210,11 @@ public:
     static float mnMaxX;
     static float mnMinY;
     static float mnMaxY;
+    
+    static float mnMinXFisheye;
+    static float mnMaxXFisheye;
+    static float mnMinYFisheye;
+    static float mnMaxYFisheye;
 
     static bool mbInitialComputations;
 

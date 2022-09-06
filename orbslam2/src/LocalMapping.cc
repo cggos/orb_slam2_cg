@@ -272,6 +272,11 @@ void LocalMapping::CreateNewMapPoints()
 #else        
         int nm = matcher.SearchForTriangulationBFM(mpCurrentKeyFrame,pKF2,F12,vMatchedIndices,false);
 #endif        
+        
+        vector<pair<size_t,size_t> > vMatchedIndicesFisheye;
+        if(mpCurrentKeyFrame->N_Fisheye>0 &&pKF2->N_Fisheye>0) {
+            matcher.SearchForTriangulationFisheye(mpCurrentKeyFrame, pKF2, vMatchedIndicesFisheye);
+        }
 
         auto t2=std::chrono::steady_clock::now();
         double dr_ms=std::chrono::duration<double,std::milli>(t2-t1).count();
@@ -459,6 +464,135 @@ void LocalMapping::CreateNewMapPoints()
             mlpRecentAddedMapPoints.push_back(pMP);
 
             nnew++;
+        }
+
+        const int nmatches_fisheye = vMatchedIndicesFisheye.size();
+        if(nmatches_fisheye>0) {
+            const cv::Mat Rc0c1 = mpCurrentKeyFrame->mfeT.rowRange(0, 3).colRange(0, 3);
+            const cv::Mat tc0c1 = mpCurrentKeyFrame->mfeT.rowRange(0, 3).col(3);
+            const cv::Mat Rc1c0 =  Rc0c1.t();
+            const cv::Mat tc1c0 = -Rc1c0 * tc0c1;
+
+            cv::Mat R1c1w = Rc1c0 * Rcw1;
+            cv::Mat t1c1w = Rc1c0 * tcw1 + tc1c0;
+            cv::Mat R2c1w = Rc1c0 * Rcw2;
+            cv::Mat t2c1w = Rc1c0 * tcw2 + tc1c0;
+
+            cv::Mat T1c1w(3,4,CV_32F);
+            R1c1w.copyTo(T1c1w.colRange(0,3));
+            t1c1w.copyTo(T1c1w.col(3));
+            cv::Mat T2c1w(3,4,CV_32F);
+            R2c1w.copyTo(T2c1w.colRange(0,3));
+            t2c1w.copyTo(T2c1w.col(3));
+
+
+            for(int ikp=0; ikp<nmatches_fisheye; ikp++) {
+                const int &idx1 = vMatchedIndicesFisheye[ikp].first;
+                const int &idx2 = vMatchedIndicesFisheye[ikp].second;
+                    
+                cv::KeyPoint kp1 = mpCurrentKeyFrame->mvKeysFisheye[idx1];
+                cv::KeyPoint kp2 = pKF2->mvKeysFisheye[idx2];
+                
+                cv::Point3f xn1 = mpCurrentKeyFrame->mpCameraFE->unproject(kp1.pt);
+                cv::Point3f xn2 = pKF2->mpCameraFE->unproject(kp2.pt);
+
+                cv::Mat mat_xn1(3, 1, CV_32F);
+                cv::Mat mat_xn2(3, 1, CV_32F);
+                mat_xn1.at<float>(0, 0) = xn1.x;
+                mat_xn1.at<float>(1, 0) = xn1.y;
+                mat_xn1.at<float>(2, 0) = xn1.z;
+                mat_xn2.at<float>(0, 0) = xn2.x;
+                mat_xn2.at<float>(1, 0) = xn2.y;
+                mat_xn2.at<float>(2, 0) = xn2.z;
+                
+                cv::Mat ray1 = R1c1w.t()*mat_xn1;
+                cv::Mat ray2 = R2c1w.t()*mat_xn2;
+                const float cosParallaxRays = ray1.dot(ray2)/(cv::norm(ray1)*cv::norm(ray2));
+                    
+                cv::Mat x3D;
+                if(cosParallaxRays>0 && cosParallaxRays<0.998)
+                {
+                    cv::Mat A(4,4,CV_32F);
+                    A.row(0) = xn1.x*T1c1w.row(2)-T1c1w.row(0);
+                    A.row(1) = xn1.y*T1c1w.row(2)-T1c1w.row(1);
+                    A.row(2) = xn2.x*T2c1w.row(2)-T2c1w.row(0);
+                    A.row(3) = xn2.y*T2c1w.row(2)-T2c1w.row(1);
+
+                    cv::Mat w,u,vt;
+                    cv::SVD::compute(A,w,u,vt,cv::SVD::MODIFY_A| cv::SVD::FULL_UV);
+
+                    x3D = vt.row(3).t();
+                    if(x3D.at<float>(3)==0)
+                        continue;
+                    // Euclidean coordinates
+                    x3D = x3D.rowRange(0,3)/x3D.at<float>(3);
+                }
+
+                cv::Mat x3Dt = x3D.t();
+
+                //Check triangulation in front of cameras
+                float z1 = R1c1w.row(2).dot(x3Dt)+t1c1w.at<float>(2);
+                if(z1<=0) continue;
+                float z2 = R2c1w.row(2).dot(x3Dt)+t2c1w.at<float>(2);
+                if(z2<=0) continue;
+
+                cv::Mat x3D1 = R1c1w * x3D + t1c1w;
+                cv::Mat x3D2 = R2c1w * x3D + t2c1w;
+
+                Eigen::Vector3d eigx3D1 = Converter::toVector3d(x3D1);
+                Eigen::Vector3d eigx3D2 = Converter::toVector3d(x3D2);
+
+                Eigen::Vector2d uv1 = mpCurrentKeyFrame->mpCameraFE->project(eigx3D1);
+                Eigen::Vector2d uv2 = pKF2->mpCameraFE->project(eigx3D2);
+
+                const float &sigmaSquare1 = mpCurrentKeyFrame->mvLevelSigma2[kp1.octave];
+                float errX1 = uv1.x() - kp1.pt.x;
+                float errY1 = uv1.y() - kp1.pt.y;
+                if((errX1*errX1+errY1*errY1)>5.991*sigmaSquare1)
+                    continue;
+                
+                const float &sigmaSquare2 = pKF2->mvLevelSigma2[kp1.octave];
+                float errX2 = uv2.x() - kp2.pt.x;
+                float errY2 = uv2.y() - kp2.pt.y;
+                if((errX2*errX2+errY2*errY2)>5.991*sigmaSquare2)
+                    continue;
+
+                // //Check scale consistency
+                // cv::Mat normal1 = x3D-Ow1;
+                // float dist1 = cv::norm(normal1);
+
+                // cv::Mat normal2 = x3D-Ow2;
+                // float dist2 = cv::norm(normal2);
+
+                // if(dist1==0 || dist2==0)
+                //     continue;
+
+                // const float ratioDist = dist2/dist1;
+                // const float ratioOctave = mpCurrentKeyFrame->mvScaleFactors[kp1.octave]/pKF2->mvScaleFactors[kp2.octave];
+
+                // /*if(fabs(ratioDist-ratioOctave)>ratioFactor)
+                //     continue;*/
+                // if(ratioDist*ratioFactor<ratioOctave || ratioDist>ratioOctave*ratioFactor)
+                //     continue;
+
+                // Triangulation is succesfull
+                MapPoint* pMP = new MapPoint(x3D,mpCurrentKeyFrame,mpMap);
+                
+                pMP->is_fisheye_ = true;
+
+                pMP->AddObservation(mpCurrentKeyFrame,idx1);            
+                pMP->AddObservation(pKF2,idx2);
+
+                mpCurrentKeyFrame->AddMapPoint(pMP, mpCurrentKeyFrame->N + idx1);
+                pKF2->AddMapPoint(pMP, pKF2->N + idx2);
+
+                pMP->ComputeDistinctiveDescriptors();
+
+                pMP->UpdateNormalAndDepth();
+
+                mpMap->AddMapPoint(pMP);
+                mlpRecentAddedMapPoints.push_back(pMP);
+            }
         }
     }
 }

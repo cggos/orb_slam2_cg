@@ -113,6 +113,8 @@ public:
 
     int nObs;
 
+    bool is_fisheye_ = false;
+
     // Variables used by the tracking
     float mTrackProjX;
     float mTrackProjY;

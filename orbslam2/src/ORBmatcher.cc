@@ -36,10 +36,11 @@ const int ORBmatcher::TH_HIGH = 100;
 const int ORBmatcher::TH_LOW = 50;
 const int ORBmatcher::HISTO_LENGTH = 30;
 
-ORBmatcher::ORBmatcher(float nnratio, bool checkOri) : mfNNratio(nnratio), mbCheckOrientation(checkOri) {
+ORBmatcher::ORBmatcher(float nnratio, bool checkOri, GeometricCamera* pCameraFE) : mfNNratio(nnratio), mbCheckOrientation(checkOri), mpCameraFE(pCameraFE) {
 }
 
 int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint *> &vpMapPoints, const float th) {
+    // TODO
     int nmatches = 0;
 
     const bool bFactor = th != 1.0;
@@ -237,9 +238,7 @@ int ORBmatcher::SearchByBFM(KeyFrame* pKF,Frame &F, std::vector<MapPoint*> &vpMa
 int ORBmatcher::SearchByBoW(KeyFrame *pKF, Frame &F, vector<MapPoint *> &vpMapPointMatches) {
     const vector<MapPoint *> vpMapPointsKF = pKF->GetMapPointMatches();
 
-    vpMapPointMatches = vector<MapPoint *>(F.N, static_cast<MapPoint *>(NULL));
-
-    const DBoW2::FeatureVector &vFeatVecKF = pKF->mFeatVec;
+    vpMapPointMatches = vector<MapPoint *>(F.N + F.N_Fisheye, static_cast<MapPoint *>(NULL));
 
     int nmatches = 0;
 
@@ -248,6 +247,7 @@ int ORBmatcher::SearchByBoW(KeyFrame *pKF, Frame &F, vector<MapPoint *> &vpMapPo
         rotHist[i].reserve(500);
     const float factor = 1.0f / HISTO_LENGTH;
 
+    const DBoW2::FeatureVector &vFeatVecKF = pKF->mFeatVec;
     // We perform the matching over ORB that belong to the same vocabulary node (at a certain level)
     DBoW2::FeatureVector::const_iterator KFit = vFeatVecKF.begin();
     DBoW2::FeatureVector::const_iterator Fit = F.mFeatVec.begin();
@@ -322,6 +322,83 @@ int ORBmatcher::SearchByBoW(KeyFrame *pKF, Frame &F, vector<MapPoint *> &vpMapPo
             KFit = vFeatVecKF.lower_bound(Fit->first);
         } else {
             Fit = F.mFeatVec.lower_bound(KFit->first);
+        }
+    }
+
+    const DBoW2::FeatureVector &vFeatVecKFFisheye = pKF->mFeatVecFisheye;
+    KFit = vFeatVecKFFisheye.begin();
+    KFend = vFeatVecKFFisheye.end();
+    Fit = F.mFeatVecFisheye.begin();
+    Fend = F.mFeatVecFisheye.end();
+
+    while (F.N_Fisheye>0 && pKF->N_Fisheye>0 && KFit != KFend && Fit != Fend) {
+        if (KFit->first == Fit->first) {
+            const vector<unsigned int> vIndicesKF = KFit->second;
+            const vector<unsigned int> vIndicesF = Fit->second;
+
+            for (size_t iKF = 0; iKF < vIndicesKF.size(); iKF++) {
+                const unsigned int realIdxKF = vIndicesKF[iKF];
+
+                MapPoint *pMP = vpMapPointsKF[pKF->N + realIdxKF];
+
+                if (!pMP)
+                    continue;
+
+                if (pMP->isBad())
+                    continue;
+
+                const cv::Mat &dKF = pKF->mDescriptorsFisheye.row(realIdxKF);
+
+                int bestDist1 = 256;
+                int bestIdxF = -1;
+                int bestDist2 = 256;
+
+                for (size_t iF = 0; iF < vIndicesF.size(); iF++) {
+                    const unsigned int realIdxF = vIndicesF[iF];
+
+                    if (vpMapPointMatches[F.N + realIdxF])
+                        continue;
+
+                    const cv::Mat &dF = F.mDescriptorsFisheye.row(realIdxF);
+
+                    const int dist = DescriptorDistance(dKF, dF);
+
+                    if (dist < bestDist1) {
+                        bestDist2 = bestDist1;
+                        bestDist1 = dist;
+                        bestIdxF = realIdxF;
+                    } else if (dist < bestDist2) {
+                        bestDist2 = dist;
+                    }
+                }
+
+                if (bestDist1 <= TH_LOW) {
+                    if (static_cast<float>(bestDist1) < mfNNratio * static_cast<float>(bestDist2)) {
+                        vpMapPointMatches[F.N + bestIdxF] = pMP;
+
+                        const cv::KeyPoint &kp = pKF->mvKeysUn[realIdxKF];
+
+                        if (mbCheckOrientation) {
+                            float rot = kp.angle - F.mvKeys[bestIdxF].angle;
+                            if (rot < 0.0)
+                                rot += 360.0f;
+                            int bin = round(rot * factor);
+                            if (bin == HISTO_LENGTH)
+                                bin = 0;
+                            assert(bin >= 0 && bin < HISTO_LENGTH);
+                            rotHist[bin].push_back(F.N + bestIdxF);
+                        }
+                        nmatches++;
+                    }
+                }
+            }
+
+            KFit++;
+            Fit++;
+        } else if (KFit->first < Fit->first) {
+            KFit = vFeatVecKFFisheye.lower_bound(Fit->first);
+        } else {
+            Fit = F.mFeatVecFisheye.lower_bound(KFit->first);
         }
     }
 
@@ -763,6 +840,163 @@ int ORBmatcher::SearchByBFM(KeyFrame *pKF1, KeyFrame* pKF2, std::vector<MapPoint
                 nmatches--;
             }
         }
+    }
+
+    return nmatches;
+}
+
+int ORBmatcher::SearchForTriangulationFisheye(KeyFrame *pKF1, KeyFrame *pKF2, vector<pair<size_t, size_t> > &vMatchedPairs) {
+    const DBoW2::FeatureVector &vFeatVec1 = pKF1->mFeatVecFisheye;
+    const DBoW2::FeatureVector &vFeatVec2 = pKF2->mFeatVecFisheye;
+
+    //Compute epipole in second image
+    const cv::Mat Rc0c1 = pKF1->mfeT.rowRange(0, 3).colRange(0, 3);
+    const cv::Mat tc0c1 = pKF1->mfeT.rowRange(0, 3).col(3);
+    const cv::Mat Rc1c0 =  Rc0c1.t();
+    const cv::Mat tc1c0 = -Rc1c0 * tc0c1;
+
+    cv::Mat R1c0w = pKF1->GetRotation();
+    cv::Mat t1c0w = pKF1->GetTranslation();
+    cv::Mat R1c1w = Rc1c0 * R1c0w;
+    cv::Mat t1c1w = Rc1c0 * t1c0w + tc1c0;
+
+    cv::Mat R2c0w = pKF2->GetRotation();
+    cv::Mat t2c0w = pKF2->GetTranslation();
+    cv::Mat R2c1w = Rc1c0 * R2c0w;
+    cv::Mat t2c1w = Rc1c0 * t2c0w + tc1c0;
+
+    cv::Mat R12 = R1c1w * R2c1w.t();
+    cv::Mat t12 = R1c1w * (-R2c1w.t() * t2c1w) + t1c1w;
+
+    Eigen::Matrix3f eigR12 = Converter::toMatrix3d(R12).cast<float>();
+    Eigen::Vector3f eigt12 = Converter::toVector3d(t12).cast<float>();
+
+    cv::Mat O10w = pKF1->GetCameraCenter();
+    cv::Mat O11w = O10w + tc1c0;
+
+    cv::Mat C2 = R2c1w * O11w + t2c1w;
+
+    Eigen::Vector3f vC2;
+    vC2[0] = C2.at<float>(0);
+    vC2[1] = C2.at<float>(1);
+    vC2[2] = C2.at<float>(2);
+
+    Eigen::Vector2f e2 = pKF2->mpCameraFE->project(vC2);
+
+    int nmatches = 0;
+    vector<bool> vbMatched2(pKF2->N_Fisheye, false);
+    vector<int> vMatches12(pKF1->N_Fisheye, -1);
+
+    vector<int> rotHist[HISTO_LENGTH];
+    for (int i = 0; i < HISTO_LENGTH; i++)
+        rotHist[i].reserve(500);
+
+    const float factor = 1.0f / HISTO_LENGTH;
+
+    DBoW2::FeatureVector::const_iterator f1it = vFeatVec1.begin();
+    DBoW2::FeatureVector::const_iterator f2it = vFeatVec2.begin();
+    DBoW2::FeatureVector::const_iterator f1end = vFeatVec1.end();
+    DBoW2::FeatureVector::const_iterator f2end = vFeatVec2.end();
+
+    while (f1it != f1end && f2it != f2end) {
+        if (f1it->first == f2it->first) {
+            for (size_t i1 = 0, iend1 = f1it->second.size(); i1 < iend1; i1++) {
+                const size_t idx1 = f1it->second[i1];
+
+                MapPoint *pMP1 = pKF1->GetMapPoint(pKF1->N + idx1);
+
+                if (pMP1)
+                    continue;
+
+                const cv::KeyPoint &kp1 = pKF1->mvKeysFisheye[idx1];
+
+                const cv::Mat &d1 = pKF1->mDescriptorsFisheye.row(idx1);
+
+                int bestDist = TH_LOW;
+                int bestIdx2 = -1;
+
+                for (size_t i2 = 0, iend2 = f2it->second.size(); i2 < iend2; i2++) {
+                    size_t idx2 = f2it->second[i2];
+
+                    MapPoint *pMP2 = pKF2->GetMapPoint(pKF2->N + idx2);
+
+                    if (vbMatched2[idx2] || pMP2)
+                        continue;
+
+                    const cv::Mat &d2 = pKF2->mDescriptorsFisheye.row(idx2);
+
+                    const int dist = DescriptorDistance(d1, d2);
+
+                    if (dist > TH_LOW || dist > bestDist)
+                        continue;
+
+                    const cv::KeyPoint &kp2 = pKF2->mvKeysFisheye[idx2];
+
+                    if (true) {
+                        const float distex = e2.x() - kp2.pt.x;
+                        const float distey = e2.y() - kp2.pt.y;
+                        if (distex * distex + distey * distey < 100 * pKF2->mvScaleFactors[kp2.octave])
+                            continue;
+                    }
+
+                    bool flag = pKF1->mpCameraFE->epipolarConstrain(pKF2->mpCameraFE, kp1, kp2, eigR12, eigt12, pKF1->mvLevelSigma2[kp1.octave],pKF2->mvLevelSigma2[kp2.octave]);
+                    if (flag) {
+                        bestIdx2 = idx2;
+                        bestDist = dist;
+                    }
+                }
+
+                if (bestIdx2 >= 0) {
+                    const cv::KeyPoint &kp2 = pKF2->mvKeysFisheye[bestIdx2];
+                    vMatches12[idx1] = bestIdx2;
+                    nmatches++;
+
+                    if (mbCheckOrientation) {
+                        float rot = kp1.angle - kp2.angle;
+                        if (rot < 0.0)
+                            rot += 360.0f;
+                        int bin = round(rot * factor);
+                        if (bin == HISTO_LENGTH)
+                            bin = 0;
+                        assert(bin >= 0 && bin < HISTO_LENGTH);
+                        rotHist[bin].push_back(idx1);
+                    }
+                }
+            }
+
+            f1it++;
+            f2it++;
+        } else if (f1it->first < f2it->first) {
+            f1it = vFeatVec1.lower_bound(f2it->first);
+        } else {
+            f2it = vFeatVec2.lower_bound(f1it->first);
+        }
+    }
+
+    if (mbCheckOrientation) {
+        int ind1 = -1;
+        int ind2 = -1;
+        int ind3 = -1;
+
+        ComputeThreeMaxima(rotHist, HISTO_LENGTH, ind1, ind2, ind3);
+
+        for (int i = 0; i < HISTO_LENGTH; i++) {
+            if (i == ind1 || i == ind2 || i == ind3)
+                continue;
+            for (size_t j = 0, jend = rotHist[i].size(); j < jend; j++) {
+                vMatches12[rotHist[i][j]] = -1;
+                nmatches--;
+            }
+        }
+    }
+
+    vMatchedPairs.clear();
+    vMatchedPairs.reserve(nmatches);
+
+    for (size_t i = 0, iend = vMatches12.size(); i < iend; i++) {
+        if (vMatches12[i] < 0)
+            continue;
+        vMatchedPairs.push_back(make_pair(i, vMatches12[i]));
     }
 
     return nmatches;
@@ -1624,6 +1858,95 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
         }
     }
 
+    if(LastFrame.N_Fisheye>0) {
+        const cv::Mat Rc0c1 = CurrentFrame.mfeT.rowRange(0, 3).colRange(0, 3);
+        const cv::Mat tc0c1 = CurrentFrame.mfeT.rowRange(0, 3).col(3);
+        const cv::Mat Rc1c0 =  Rc0c1.t();
+        const cv::Mat tc1c0 = -Rc1c0 * tc0c1;
+        for (int i = 0; i < LastFrame.N_Fisheye; i++) {
+            MapPoint *pMP = LastFrame.mvpMapPoints[LastFrame.N + i];
+
+            if (pMP) {
+                if (!LastFrame.mvbOutlier[LastFrame.N + i]) {
+                    // Project
+                    cv::Mat x3Dw = pMP->GetWorldPos();
+                    cv::Mat x3Dc0 = Rcw * x3Dw + tcw;
+
+                    cv::Mat x3Dc1 = Rc1c0 * x3Dc0 + tc1c0;
+
+                    const float invzc = 1.0 / x3Dc1.at<float>(2);
+                    if (invzc < 0)
+                        continue;
+                    
+                    Eigen::Vector3f p3d_c1(x3Dc1.at<float>(0), x3Dc1.at<float>(1), x3Dc1.at<float>(2));
+                    Eigen::Vector2f uv = mpCameraFE->project(p3d_c1);
+
+                    float u = uv.x();
+                    float v = uv.y();
+
+                    // TODO
+                    if (u < CurrentFrame.mnMinXFisheye || u > CurrentFrame.mnMaxXFisheye)
+                        continue;
+                    if (v < CurrentFrame.mnMinYFisheye || v > CurrentFrame.mnMaxYFisheye)
+                        continue;
+
+                    int nLastOctave = LastFrame.mvKeysFisheye[i].octave;
+
+                    // Search in a window. Size depends on scale
+                    float radius = th * CurrentFrame.mvScaleFactors[nLastOctave];
+
+                    vector<size_t> vIndices2;
+
+                    if (bForward)
+                        vIndices2 = CurrentFrame.GetFeaturesInAreaFisheye(u, v, radius, nLastOctave);
+                    else if (bBackward)
+                        vIndices2 = CurrentFrame.GetFeaturesInAreaFisheye(u, v, radius, 0, nLastOctave);
+                    else
+                        vIndices2 = CurrentFrame.GetFeaturesInAreaFisheye(u, v, radius, nLastOctave - 1, nLastOctave + 1);
+
+                    if (vIndices2.empty())
+                        continue;
+
+                    const cv::Mat dMP = pMP->GetDescriptor();
+
+                    int bestDist = 256;
+                    int bestIdx2 = -1;
+
+                    for (vector<size_t>::const_iterator vit = vIndices2.begin(), vend = vIndices2.end(); vit != vend; vit++) {
+                        const size_t i2 = *vit;
+                        if (CurrentFrame.mvpMapPoints[CurrentFrame.N + i2])
+                            if (CurrentFrame.mvpMapPoints[CurrentFrame.N + i2]->Observations() > 0)
+                                continue;
+
+                        const cv::Mat &d = CurrentFrame.mDescriptorsFisheye.row(i2);
+
+                        const int dist = DescriptorDistance(dMP, d);
+
+                        if (dist < bestDist) {
+                            bestDist = dist;
+                            bestIdx2 = i2;
+                        }
+                    }
+
+                    if (bestDist <= TH_HIGH) {
+                        CurrentFrame.mvpMapPoints[CurrentFrame.N + bestIdx2] = pMP;
+                        nmatches++;
+
+                        if (mbCheckOrientation) {
+                            float rot = LastFrame.mvKeysFisheye[i].angle - CurrentFrame.mvKeysFisheye[bestIdx2].angle;
+                            if (rot < 0.0)
+                                rot += 360.0f;
+                            int bin = round(rot * factor);
+                            if (bin == HISTO_LENGTH)
+                                bin = 0;
+                            assert(bin >= 0 && bin < HISTO_LENGTH);
+                            rotHist[bin].push_back(CurrentFrame.N + bestIdx2);
+                        }
+                    }
+                }
+            }
+        }
+    }
     //Apply rotation consistency
     if (mbCheckOrientation) {
         int ind1 = -1;
