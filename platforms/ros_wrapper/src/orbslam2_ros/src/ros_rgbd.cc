@@ -58,8 +58,15 @@ int main(int argc, char **argv)
         return 1;
     }    
 
+    bool tumros = false;
+    auto pnh = std::make_shared<ros::NodeHandle>("~");
+    pnh->param<bool>("tumros", tumros, tumros);
+    std::cout << "tumros: " << tumros << std::endl;
+
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,true);
+
+    SLAM.isTumROS = tumros;
 
     ImageGrabber igb(&SLAM);
 

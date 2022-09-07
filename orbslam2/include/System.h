@@ -132,6 +132,8 @@ public:
     // performs relocalization if tracking fails.
     Tracking* mpTracker;
 
+    bool isTumROS = false;
+
 private:
 
     // Input sensor

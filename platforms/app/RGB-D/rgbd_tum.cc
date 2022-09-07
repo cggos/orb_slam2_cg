@@ -88,29 +88,6 @@ int main(int argc, char **argv)
             return 1;
         }
 
-#if 1 
-        // show depth image
-        cv::Mat mat_depth8;
-        double min, max;
-        cv::minMaxLoc(imD, &min, &max);
-        imD.convertTo(mat_depth8, CV_8UC1, 255.0/(max-min), -255.0*min/(max-min));
-        cv::imshow("depth", mat_depth8);
-        cv::waitKey(10);
-#endif
-
-#if 0
-        char name_color[16];
-        char name_depth[16];
-        sprintf(name_color, "color/%04d.png", ni);
-        sprintf(name_depth, "depth/%04d.png", ni);
-        std::string str_dir = "/home/cg/dev_sdb/datasets/TUM/RGBD-SLAM-Dataset/rgbd_dataset_freiburg1_room-test/";
-        std::string str_color = str_dir + name_color;
-        std::string str_depth = str_dir + name_depth;
-        std::cout << std::string(str_color) << std::endl;
-        cv::imwrite(str_color, imRGB); //cv::ImwriteFlags
-        cv::imwrite(str_depth, imD);
-#endif
-
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 #else

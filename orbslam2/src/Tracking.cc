@@ -172,13 +172,13 @@ Tracking::Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer,
     cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
     cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
 
-    if (sensor == System::STEREO || sensor == System::RGBD) {
+    if (sensor == System::STEREO || sensor == System::RGBD || sensor == System::RGBDFisheye) {
         mThDepth = mbf * (float)fSettings["ThDepth"] / fx;
         cout << endl
              << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
     }
 
-    if (sensor == System::RGBD) {
+    if (sensor == System::RGBD || sensor == System::RGBDFisheye) {
         mDepthMapFactor = fSettings["DepthMapFactor"];
         if (fabs(mDepthMapFactor) < 1e-5)
             mDepthMapFactor = 1;
@@ -244,8 +244,40 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat& imRGB, const cv::Mat& imD, const 
             cvtColor(mImGray, mImGray, CV_BGRA2GRAY);
     }
 
-    if ((fabs(mDepthMapFactor - 1.0f) > 1e-5) || imDepth.type() != CV_32F)
+#if 0 
+        // show depth image
+        cv::Mat mat_depth8;
+        double min, max;
+        cv::minMaxLoc(imDepth, &min, &max);
+        imDepth.convertTo(mat_depth8, CV_8UC1, 255.0/(max-min), -255.0*min/(max-min));
+        cv::imshow("depth", mat_depth8);
+        cv::waitKey(10);
+#endif
+
+#if 0
+        char name_color[16];
+        char name_depth[16];
+        sprintf(name_color, "color/%04d.png", ni);
+        sprintf(name_depth, "depth/%04d.png", ni);
+        std::string str_dir = "/home/cg/dev_sdb/datasets/TUM/RGBD-SLAM-Dataset/rgbd_dataset_freiburg1_room-test/";
+        std::string str_color = str_dir + name_color;
+        std::string str_depth = str_dir + name_depth;
+        std::cout << std::string(str_color) << std::endl;
+        cv::imwrite(str_color, imRGB); //cv::ImwriteFlags
+        cv::imwrite(str_depth, imD);
+#endif
+
+    if (((fabs(mDepthMapFactor - 1.0f) > 1e-5) || imDepth.type() != CV_32F) && !mpSystem->isTumROS)
         imDepth.convertTo(imDepth, CV_32F, mDepthMapFactor);
+    
+    std::cout << "mDepthMapFactor: " << mDepthMapFactor << std::endl;
+
+    // for(int i=0; i<10; i++) {
+    //     for(int j=0; j<10; j++) 
+    //         std::cout << imDepth.at<float>(300 + j, 200 + i) << " ";
+    //     std::cout << std::endl;
+    // }
+    // std::cout << std::endl;
 
     if(mSensor == System::RGBD)
         mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth);

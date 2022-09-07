@@ -2,7 +2,7 @@
 
 <launch>
   <arg name="rviz" default="false"/>
-  <arg name="bag" default="true"/>
+  <arg name="bag" default="false"/>
   <arg name="bagfile" default="/mnt/win_dir/shared_cg/UbuntuCG/datasets/euroc/V1_01_easy.bag"/>
 
   <group if="$(arg rviz)">
