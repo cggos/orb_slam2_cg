@@ -2,14 +2,16 @@
 
 #--------------------------------------------------------------------------------------------
 # Camera Parameters. Adjust them!
+# Cam0: D435i RGB cam
+# Cam1: T265 left Fisheye cam
 #--------------------------------------------------------------------------------------------
 Camera.type: "PinHole"
 
-# Right Camera calibration and distortion parameters (OpenCV)
-Camera.fx: 617.201
-Camera.fy: 617.362
-Camera.cx: 324.637
-Camera.cy: 242.462
+# D435i RGB Camera calibration and distortion parameters (OpenCV)
+Camera.fx: 605.4529248834577
+Camera.fy: 604.9409444737163
+Camera.cx: 320.3388339349864
+Camera.cy: 236.14259687906255
 
 
 # distortion parameters
@@ -35,57 +37,40 @@ Camera.imageScale: 0.5 # 0.5 #0.7071 # 1/sqrt(2)
 ThDepth: 40.0
 
 # stereo baseline times fx
-Camera.bf: 46.01
+Camera.bf: 42
 
 # Deptmap values factor
 DepthMapFactor: 1000.0
 
-# Transformation from body-frame (imu) to left camera
-Tbc: !!opencv-matrix
-   rows: 4
-   cols: 4
-   dt: f
-   data: [1,0,0,-0.005,
-         0,1,0,-0.005,
-         0,0,1,0.0117,
-         0.0, 0.0, 0.0, 1.0]
-
 # Left Fisheye Cam of T265
 Camera1.type: "KannalaBrandt8"
-Camera1.fx: 284.9501953125
-Camera1.fy: 285.115295410156
-Camera1.cx: 420.500213623047
-Camera1.cy: 400.738098144531
-Camera1.k1: -0.00530046410858631
-Camera1.k2: 0.0423333682119846
-Camera1.k3: -0.03949885815382
-Camera1.k4: 0.00682387687265873
+Camera1.fx: 286.87849493984714
+Camera1.fy: 286.87462229837365
+Camera1.cx: 420.2555832317774
+Camera1.cy: 396.0897129368224
+Camera1.k1: -0.009494348514909445
+Camera1.k2: 0.05628164788077408
+Camera1.k3: -0.05995746751011047
+Camera1.k4: 0.016503326755942457
 
 # Transformation matrix from Fisheye camera to IR camera
 Camera1.T_c1_c2: !!opencv-matrix
   rows: 4
   cols: 4
   dt: f
-  data: [ 0.9999532605808058, -0.006944793266554421, 0.00672655188773216, 0.003761379593997489,
-          0.006894904807326908, 0.9999487625081853, 0.007411656093277601, 0.06590560940115227,
-         -0.006777679655415488, -0.007364930741829082, 0.999949909172282, 0.011604154045807627,
+  data: [ 0.9999797479290186, 0.006252217586499932, 0.0011889100343454584, -0.010240939418857807,
+         -0.006263538077639768, 0.9999326636091919, 0.009769152377714566, 0.06577215068054588,
+         -0.0011277511111336042, -0.009776401315418183, 0.9999515739048334, 0.01157648539054208,
           0.0,0.0,0.0,1.0]
 
 # Do not insert KFs when recently lost
 InsertKFsWhenLost: 0
 
-# IMU noise (Use those from VINS-mono)
-IMU.NoiseGyro: 1e-3 # 2.44e-4 #1e-3 # rad/s^0.5
-IMU.NoiseAcc: 1e-2 # 1.47e-3 #1e-2 # m/s^1.5
-IMU.GyroWalk: 1e-6 # rad/s^1.5
-IMU.AccWalk: 1e-4 # m/s^2.5
-IMU.Frequency: 200
-
 #--------------------------------------------------------------------------------------------
 # ORB Parameters
 #--------------------------------------------------------------------------------------------
 # ORB Extractor: Number of features per image
-ORBextractor.nFeatures: 1250
+ORBextractor.nFeatures: 1000
 
 # ORB Extractor: Scale factor between levels in the scale pyramid 	
 ORBextractor.scaleFactor: 1.2
