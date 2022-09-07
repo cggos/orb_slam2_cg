@@ -170,6 +170,9 @@ target_link_libraries(Stereo ${LIBS})
 add_executable(RGBD src/ros_rgbd.cc)
 target_link_libraries(RGBD ${LIBS})
 
+add_executable(RGBDFisheye src/ros_rgbd_fisheye.cc)
+target_link_libraries(RGBDFisheye ${LIBS})
+
 #############
 ## Install ##
 #############
