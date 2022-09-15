@@ -32,6 +32,8 @@ long unsigned int KeyFrame::nNextId = 0;
 KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB) : 
     mnFrameId(F.mnId), mTimeStamp(F.mTimeStamp), mnGridCols(FRAME_GRID_COLS), mnGridRows(FRAME_GRID_ROWS), 
     mfGridElementWidthInv(F.mfGridElementWidthInv), mfGridElementHeightInv(F.mfGridElementHeightInv), 
+    mnGridColsFisheye(FRAME_GRID_RCS_FE), mnGridRowsFisheye(FRAME_GRID_RCS_FE),
+    mfGridElementWidthInvFisheye(F.mfGridElementWidthInvFisheye), mfGridElementHeightInvFisheye(F.mfGridElementHeightInvFisheye), 
     mnTrackReferenceForFrame(0), mnFuseTargetForKF(0), mnBALocalForKF(0), mnBAFixedForKF(0), 
     mnLoopQuery(0), mnLoopWords(0), mnRelocQuery(0), mnRelocWords(0), mnBAGlobalForKF(0), 
     fx(F.fx), fy(F.fy), cx(F.cx), cy(F.cy), invfx(F.invfx), invfy(F.invfy), mbf(F.mbf), mb(F.mb), mThDepth(F.mThDepth), 
@@ -42,7 +44,13 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB) :
     mBowVecFisheye(F.mBowVecFisheye), mFeatVecFisheye(F.mFeatVecFisheye), mDescriptorsFisheye(F.mDescriptorsFisheye.clone()),
     mnScaleLevels(F.mnScaleLevels), mfScaleFactor(F.mfScaleFactor), mfLogScaleFactor(F.mfLogScaleFactor), mvScaleFactors(F.mvScaleFactors), 
     mvLevelSigma2(F.mvLevelSigma2), mvInvLevelSigma2(F.mvInvLevelSigma2), 
+    mnScaleLevelsFisheye(F.mnScaleLevelsFisheye), mfScaleFactorFisheye(F.mfScaleFactorFisheye), mfLogScaleFactorFisheye(F.mfLogScaleFactorFisheye), 
+    mvScaleFactorsFisheye(F.mvScaleFactorsFisheye), mvLevelSigma2Fisheye(F.mvLevelSigma2Fisheye), mvInvLevelSigma2Fisheye(F.mvInvLevelSigma2Fisheye), 
     mnMinX(F.mnMinX), mnMinY(F.mnMinY), mnMaxX(F.mnMaxX), mnMaxY(F.mnMaxY), mK(F.mK), 
+    mnMinXFisheye(F.mnMinXFisheye), 
+    mnMinYFisheye(F.mnMinYFisheye), 
+    mnMaxXFisheye(F.mnMaxXFisheye), 
+    mnMaxYFisheye(F.mnMaxYFisheye),
     mvpMapPoints(F.mvpMapPoints), mpKeyFrameDB(pKFDB), mpORBvocabulary(F.mpORBvocabulary), mbFirstConnection(true), mpParent(NULL), 
     mbNotErase(false), mbToBeErased(false), mbBad(false), mHalfBaseline(F.mb / 2), mpMap(pMap) {
 
@@ -54,6 +62,13 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB) :
         for (int j = 0; j < mnGridRows; j++)
             mGrid[i][j] = F.mGrid[i][j];
     }
+    
+    mGridFisheye.resize(mnGridColsFisheye);
+    for (int i = 0; i < mnGridColsFisheye; i++) {
+        mGridFisheye[i].resize(mnGridRowsFisheye);
+        for (int j = 0; j < mnGridRowsFisheye; j++)
+            mGridFisheye[i][j] = F.mGridFisheye[i][j];
+    }
 
     SetPose(F.mTcw);
 }
@@ -64,6 +79,11 @@ void KeyFrame::ComputeBoW() {
         // Feature vector associate features with nodes in the 4th level (from leaves up)
         // We assume the vocabulary tree has 6 levels, change the 4 otherwise
         mpORBvocabulary->transform(vCurrentDesc, mBowVec, mFeatVec, 4);
+    }
+    
+    if (N_Fisheye>0 && (mBowVecFisheye.empty() || mFeatVecFisheye.empty())) {
+        vector<cv::Mat> vCurrentDesc = Converter::toDescriptorVector(mDescriptorsFisheye);
+        mpORBvocabulary->transform(vCurrentDesc, mBowVecFisheye, mFeatVecFisheye, 4);
     }
 }
 
@@ -522,6 +542,43 @@ vector<size_t> KeyFrame::GetFeaturesInArea(const float &x, const float &y, const
             const vector<size_t> vCell = mGrid[ix][iy];
             for (size_t j = 0, jend = vCell.size(); j < jend; j++) {
                 const cv::KeyPoint &kpUn = mvKeysUn[vCell[j]];
+                const float distx = kpUn.pt.x - x;
+                const float disty = kpUn.pt.y - y;
+
+                if (fabs(distx) < r && fabs(disty) < r)
+                    vIndices.push_back(vCell[j]);
+            }
+        }
+    }
+
+    return vIndices;
+}
+
+vector<size_t> KeyFrame::GetFeaturesInAreaFisheye(const float &x, const float &y, const float &r) const {
+    vector<size_t> vIndices;
+    vIndices.reserve(N);
+
+    const int nMinCellX = max(0, (int)floor((x - mnMinXFisheye - r) * mfGridElementWidthInvFisheye));
+    if (nMinCellX >= mnGridColsFisheye)
+        return vIndices;
+
+    const int nMaxCellX = min((int)mnGridColsFisheye - 1, (int)ceil((x - mnMinXFisheye + r) * mfGridElementWidthInvFisheye));
+    if (nMaxCellX < 0)
+        return vIndices;
+
+    const int nMinCellY = max(0, (int)floor((y - mnMinYFisheye - r) * mfGridElementHeightInvFisheye));
+    if (nMinCellY >= mnGridRowsFisheye)
+        return vIndices;
+
+    const int nMaxCellY = min((int)mnGridRowsFisheye - 1, (int)ceil((y - mnMinYFisheye + r) * mfGridElementHeightInvFisheye));
+    if (nMaxCellY < 0)
+        return vIndices;
+
+    for (int ix = nMinCellX; ix <= nMaxCellX; ix++) {
+        for (int iy = nMinCellY; iy <= nMaxCellY; iy++) {
+            const vector<size_t> vCell = mGridFisheye[ix][iy];
+            for (size_t j = 0, jend = vCell.size(); j < jend; j++) {
+                const cv::KeyPoint &kpUn = mvKeysFisheye[vCell[j]];
                 const float distx = kpUn.pt.x - x;
                 const float disty = kpUn.pt.y - y;
 

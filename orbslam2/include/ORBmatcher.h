@@ -99,8 +99,6 @@ public:
     static const int TH_HIGH;
     static const int HISTO_LENGTH;
 
-    GeometricCamera* mpCameraFE;
-
 
 protected:
 

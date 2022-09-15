@@ -204,6 +204,14 @@ public:
     vector<float> mvInvScaleFactors;
     vector<float> mvLevelSigma2;
     vector<float> mvInvLevelSigma2;
+    
+    int mnScaleLevelsFisheye;
+    float mfScaleFactorFisheye;
+    float mfLogScaleFactorFisheye;
+    vector<float> mvScaleFactorsFisheye;
+    vector<float> mvInvScaleFactorsFisheye;
+    vector<float> mvLevelSigma2Fisheye;
+    vector<float> mvInvLevelSigma2Fisheye;
 
     // Undistorted Image Bounds (computed once).
     static float mnMinX;

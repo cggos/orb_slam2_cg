@@ -269,8 +269,15 @@ void MapPoint::ComputeDistinctiveDescriptors()
         KeyFrame* pKF = mit->first;
 
         if(!pKF->isBad())
-            if(is_fisheye_)
+            if(is_fisheye_) {
+                // std::cout << "DesFE size: " << pKF->mDescriptorsFisheye.rows << std::endl;
+                // std::cout << "mit: " << mit->second << std::endl;
+                
+                // [CGGOS] TODO
+                if(mit->second >= pKF->mDescriptorsFisheye.rows) continue;
+
                 vDescriptors.push_back(pKF->mDescriptorsFisheye.row(mit->second));
+            }
             else
                 vDescriptors.push_back(pKF->mDescriptors.row(mit->second));
     }
@@ -367,7 +374,15 @@ void MapPoint::UpdateNormalAndDepth()
 
     cv::Mat PC = Pos - pRefKF->GetCameraCenter();
     const float dist = cv::norm(PC);
-    const int level = pRefKF->mvKeysUn[observations[pRefKF]].octave;
+    int level = 0;
+    if(!is_fisheye_)
+        level = pRefKF->mvKeysUn[observations[pRefKF]].octave;
+    else {
+
+        level = pRefKF->mvKeysFisheye[observations[pRefKF]].octave;
+        // [CGGOS] TODO
+        if(level<0 || level>=8) level = 4.0;
+    }
     const float levelScaleFactor =  pRefKF->mvScaleFactors[level];
     const int nLevels = pRefKF->mnScaleLevels;
 

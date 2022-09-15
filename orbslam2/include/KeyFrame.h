@@ -108,6 +108,7 @@ public:
 
     // KeyPoint functions
     std::vector<size_t> GetFeaturesInArea(const float &x, const float  &y, const float  &r) const;
+    std::vector<size_t> GetFeaturesInAreaFisheye(const float &x, const float  &y, const float  &r) const;
     cv::Mat UnprojectStereo(int i);
 
     // Image
@@ -147,6 +148,11 @@ public:
     const int mnGridRows;
     const float mfGridElementWidthInv;
     const float mfGridElementHeightInv;
+    
+    const int mnGridColsFisheye;
+    const int mnGridRowsFisheye;
+    const float mfGridElementWidthInvFisheye;
+    const float mfGridElementHeightInvFisheye;
 
     // Variables used by the tracking
     long unsigned int mnTrackReferenceForFrame;
@@ -207,6 +213,13 @@ public:
     const std::vector<float> mvScaleFactors;
     const std::vector<float> mvLevelSigma2;
     const std::vector<float> mvInvLevelSigma2;
+    
+    int mnScaleLevelsFisheye;
+    float mfScaleFactorFisheye;
+    float mfLogScaleFactorFisheye;
+    vector<float> mvScaleFactorsFisheye;
+    vector<float> mvLevelSigma2Fisheye;
+    vector<float> mvInvLevelSigma2Fisheye;
 
     // Image bounds and calibration
     const int mnMinX;
@@ -215,6 +228,10 @@ public:
     const int mnMaxY;
     const cv::Mat mK;
 
+    const float mnMinXFisheye;
+    const float mnMaxXFisheye;
+    const float mnMinYFisheye;
+    const float mnMaxYFisheye;
 
     // The following variables need to be accessed trough a mutex to be thread safe.
 protected:
@@ -235,6 +252,7 @@ protected:
 
     // Grid over the image to speed up feature matching
     std::vector< std::vector <std::vector<size_t> > > mGrid;
+    std::vector< std::vector <std::vector<size_t> > > mGridFisheye;
 
     std::map<KeyFrame*,int> mConnectedKeyFrameWeights;
     std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames;

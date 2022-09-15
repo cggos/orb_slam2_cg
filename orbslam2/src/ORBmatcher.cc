@@ -36,11 +36,10 @@ const int ORBmatcher::TH_HIGH = 100;
 const int ORBmatcher::TH_LOW = 50;
 const int ORBmatcher::HISTO_LENGTH = 30;
 
-ORBmatcher::ORBmatcher(float nnratio, bool checkOri, GeometricCamera* pCameraFE) : mfNNratio(nnratio), mbCheckOrientation(checkOri), mpCameraFE(pCameraFE) {
+ORBmatcher::ORBmatcher(float nnratio, bool checkOri, GeometricCamera* pCameraFE) : mfNNratio(nnratio), mbCheckOrientation(checkOri) {
 }
 
 int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint *> &vpMapPoints, const float th) {
-    // TODO
     int nmatches = 0;
 
     const bool bFactor = th != 1.0;
@@ -60,58 +59,107 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint *> &vpMapPoin
 
         if (bFactor)
             r *= th;
+        
+        if(!pMP->is_fisheye_) {
+            const vector<size_t> vIndices =
+                F.GetFeaturesInArea(pMP->mTrackProjX, pMP->mTrackProjY, r * F.mvScaleFactors[nPredictedLevel], nPredictedLevel - 1, nPredictedLevel);
 
-        const vector<size_t> vIndices =
-            F.GetFeaturesInArea(pMP->mTrackProjX, pMP->mTrackProjY, r * F.mvScaleFactors[nPredictedLevel], nPredictedLevel - 1, nPredictedLevel);
-
-        if (vIndices.empty())
-            continue;
-
-        const cv::Mat MPdescriptor = pMP->GetDescriptor();
-
-        int bestDist = 256;
-        int bestLevel = -1;
-        int bestDist2 = 256;
-        int bestLevel2 = -1;
-        int bestIdx = -1;
-
-        // Get best and second matches with near keypoints
-        for (vector<size_t>::const_iterator vit = vIndices.begin(), vend = vIndices.end(); vit != vend; vit++) {
-            const size_t idx = *vit;
-
-            if (F.mvpMapPoints[idx])
-                if (F.mvpMapPoints[idx]->Observations() > 0)
-                    continue;
-
-            if (F.mvuRight[idx] > 0) {
-                const float er = fabs(pMP->mTrackProjXR - F.mvuRight[idx]);
-                if (er > r * F.mvScaleFactors[nPredictedLevel])
-                    continue;
-            }
-
-            const cv::Mat &d = F.mDescriptors.row(idx);
-
-            const int dist = DescriptorDistance(MPdescriptor, d);
-
-            if (dist < bestDist) {
-                bestDist2 = bestDist;
-                bestDist = dist;
-                bestLevel2 = bestLevel;
-                bestLevel = F.mvKeysUn[idx].octave;
-                bestIdx = idx;
-            } else if (dist < bestDist2) {
-                bestLevel2 = F.mvKeysUn[idx].octave;
-                bestDist2 = dist;
-            }
-        }
-
-        // Apply ratio to second match (only if best and second are in the same scale level)
-        if (bestDist <= TH_HIGH) {
-            if (bestLevel == bestLevel2 && bestDist > mfNNratio * bestDist2)
+            if (vIndices.empty())
                 continue;
 
-            F.mvpMapPoints[bestIdx] = pMP;
-            nmatches++;
+            const cv::Mat MPdescriptor = pMP->GetDescriptor();
+
+            int bestDist = 256;
+            int bestLevel = -1;
+            int bestDist2 = 256;
+            int bestLevel2 = -1;
+            int bestIdx = -1;
+
+            // Get best and second matches with near keypoints
+            for (vector<size_t>::const_iterator vit = vIndices.begin(), vend = vIndices.end(); vit != vend; vit++) {
+                const size_t idx = *vit;
+
+                if (F.mvpMapPoints[idx])
+                    if (F.mvpMapPoints[idx]->Observations() > 0)
+                        continue;
+
+                if (F.mvuRight[idx] > 0) {
+                    const float er = fabs(pMP->mTrackProjXR - F.mvuRight[idx]);
+                    if (er > r * F.mvScaleFactors[nPredictedLevel])
+                        continue;
+                }
+
+                const cv::Mat &d = F.mDescriptors.row(idx);
+
+                const int dist = DescriptorDistance(MPdescriptor, d);
+
+                if (dist < bestDist) {
+                    bestDist2 = bestDist;
+                    bestDist = dist;
+                    bestLevel2 = bestLevel;
+                    bestLevel = F.mvKeysUn[idx].octave;
+                    bestIdx = idx;
+                } else if (dist < bestDist2) {
+                    bestLevel2 = F.mvKeysUn[idx].octave;
+                    bestDist2 = dist;
+                }
+            }
+
+            // Apply ratio to second match (only if best and second are in the same scale level)
+            if (bestDist <= TH_HIGH) {
+                if (bestLevel == bestLevel2 && bestDist > mfNNratio * bestDist2)
+                    continue;
+
+                F.mvpMapPoints[bestIdx] = pMP;
+                nmatches++;
+            }
+        } else {
+            const vector<size_t> vIndices =
+                F.GetFeaturesInAreaFisheye(pMP->mTrackProjX, pMP->mTrackProjY, r * F.mvScaleFactors[nPredictedLevel], nPredictedLevel - 1, nPredictedLevel);
+
+            if (vIndices.empty())
+                continue;
+
+            const cv::Mat MPdescriptor = pMP->GetDescriptor();
+
+            int bestDist = 256;
+            int bestLevel = -1;
+            int bestDist2 = 256;
+            int bestLevel2 = -1;
+            int bestIdx = -1;
+
+            // Get best and second matches with near keypoints
+            for (vector<size_t>::const_iterator vit = vIndices.begin(), vend = vIndices.end(); vit != vend; vit++) {
+                const size_t idx = *vit;
+
+                if (F.mvpMapPoints[F.N + idx])
+                    if (F.mvpMapPoints[F.N + idx]->Observations() > 0)
+                        continue;
+
+                const cv::Mat &d = F.mDescriptorsFisheye.row(idx);
+
+                const int dist = DescriptorDistance(MPdescriptor, d);
+
+                if (dist < bestDist) {
+                    bestDist2 = bestDist;
+                    bestDist = dist;
+                    bestLevel2 = bestLevel;
+                    bestLevel = F.mvKeysFisheye[idx].octave;
+                    bestIdx = idx;
+                } else if (dist < bestDist2) {
+                    bestLevel2 = F.mvKeysFisheye[idx].octave;
+                    bestDist2 = dist;
+                }
+            }
+
+            // Apply ratio to second match (only if best and second are in the same scale level)
+            if (bestDist <= TH_HIGH) {
+                if (bestLevel == bestLevel2 && bestDist > mfNNratio * bestDist2)
+                    continue;
+
+                F.mvpMapPoints[F.N + bestIdx] = pMP;
+                // nmatches++;
+            }
         }
     }
 
@@ -848,6 +896,9 @@ int ORBmatcher::SearchByBFM(KeyFrame *pKF1, KeyFrame* pKF2, std::vector<MapPoint
 int ORBmatcher::SearchForTriangulationFisheye(KeyFrame *pKF1, KeyFrame *pKF2, vector<pair<size_t, size_t> > &vMatchedPairs) {
     const DBoW2::FeatureVector &vFeatVec1 = pKF1->mFeatVecFisheye;
     const DBoW2::FeatureVector &vFeatVec2 = pKF2->mFeatVecFisheye;
+                
+    // std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": " << "vFeatVec1: " << vFeatVec1.size() << std::endl;
+    // std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": " << "vFeatVec2: " << vFeatVec2.size() << std::endl;
 
     //Compute epipole in second image
     const cv::Mat Rc0c1 = pKF1->mfeT.rowRange(0, 3).colRange(0, 3);
@@ -945,22 +996,24 @@ int ORBmatcher::SearchForTriangulationFisheye(KeyFrame *pKF1, KeyFrame *pKF2, ve
                         bestDist = dist;
                     }
                 }
+                
+                // std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": " << "bestIdx2: " << bestIdx2 << std::endl;
 
                 if (bestIdx2 >= 0) {
                     const cv::KeyPoint &kp2 = pKF2->mvKeysFisheye[bestIdx2];
                     vMatches12[idx1] = bestIdx2;
                     nmatches++;
 
-                    if (mbCheckOrientation) {
-                        float rot = kp1.angle - kp2.angle;
-                        if (rot < 0.0)
-                            rot += 360.0f;
-                        int bin = round(rot * factor);
-                        if (bin == HISTO_LENGTH)
-                            bin = 0;
-                        assert(bin >= 0 && bin < HISTO_LENGTH);
-                        rotHist[bin].push_back(idx1);
-                    }
+                    // if (mbCheckOrientation) {
+                    //     float rot = kp1.angle - kp2.angle;
+                    //     if (rot < 0.0)
+                    //         rot += 360.0f;
+                    //     int bin = round(rot * factor);
+                    //     if (bin == HISTO_LENGTH)
+                    //         bin = 0;
+                    //     assert(bin >= 0 && bin < HISTO_LENGTH);
+                    //     rotHist[bin].push_back(idx1);
+                    // }
                 }
             }
 
@@ -973,22 +1026,22 @@ int ORBmatcher::SearchForTriangulationFisheye(KeyFrame *pKF1, KeyFrame *pKF2, ve
         }
     }
 
-    if (mbCheckOrientation) {
-        int ind1 = -1;
-        int ind2 = -1;
-        int ind3 = -1;
+    // if (mbCheckOrientation) {
+    //     int ind1 = -1;
+    //     int ind2 = -1;
+    //     int ind3 = -1;
 
-        ComputeThreeMaxima(rotHist, HISTO_LENGTH, ind1, ind2, ind3);
+    //     ComputeThreeMaxima(rotHist, HISTO_LENGTH, ind1, ind2, ind3);
 
-        for (int i = 0; i < HISTO_LENGTH; i++) {
-            if (i == ind1 || i == ind2 || i == ind3)
-                continue;
-            for (size_t j = 0, jend = rotHist[i].size(); j < jend; j++) {
-                vMatches12[rotHist[i][j]] = -1;
-                nmatches--;
-            }
-        }
-    }
+    //     for (int i = 0; i < HISTO_LENGTH; i++) {
+    //         if (i == ind1 || i == ind2 || i == ind3)
+    //             continue;
+    //         for (size_t j = 0, jend = rotHist[i].size(); j < jend; j++) {
+    //             vMatches12[rotHist[i][j]] = -1;
+    //             nmatches--;
+    //         }
+    //     }
+    // }
 
     vMatchedPairs.clear();
     vMatchedPairs.reserve(nmatches);
@@ -998,6 +1051,8 @@ int ORBmatcher::SearchForTriangulationFisheye(KeyFrame *pKF1, KeyFrame *pKF2, ve
             continue;
         vMatchedPairs.push_back(make_pair(i, vMatches12[i]));
     }
+
+    std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": " << "vMatchedPairs: " << vMatchedPairs.size() << std::endl;
 
     return nmatches;
 }
@@ -1859,6 +1914,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
     }
 
     if(LastFrame.N_Fisheye>0) {
+        // std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": LastFrame.N_Fisheye: " << LastFrame.N_Fisheye << std::endl;
         const cv::Mat Rc0c1 = CurrentFrame.mfeT.rowRange(0, 3).colRange(0, 3);
         const cv::Mat tc0c1 = CurrentFrame.mfeT.rowRange(0, 3).col(3);
         const cv::Mat Rc1c0 =  Rc0c1.t();
@@ -1874,12 +1930,15 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
 
                     cv::Mat x3Dc1 = Rc1c0 * x3Dc0 + tc1c0;
 
+                    if(std::abs(x3Dc1.at<float>(0)) < 1e-6 || std::abs(x3Dc1.at<float>(2)) < 1e-6)
+                        continue;
+                    
                     const float invzc = 1.0 / x3Dc1.at<float>(2);
                     if (invzc < 0)
                         continue;
                     
                     Eigen::Vector3f p3d_c1(x3Dc1.at<float>(0), x3Dc1.at<float>(1), x3Dc1.at<float>(2));
-                    Eigen::Vector2f uv = mpCameraFE->project(p3d_c1);
+                    Eigen::Vector2f uv = CurrentFrame.mpCameraFE->project(p3d_c1);
 
                     float u = uv.x();
                     float v = uv.y();

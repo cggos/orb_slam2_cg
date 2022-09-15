@@ -270,7 +270,7 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat& imRGB, const cv::Mat& imD, const 
     if (((fabs(mDepthMapFactor - 1.0f) > 1e-5) || imDepth.type() != CV_32F) && !mpSystem->isTumROS)
         imDepth.convertTo(imDepth, CV_32F, mDepthMapFactor);
     
-    std::cout << "mDepthMapFactor: " << mDepthMapFactor << std::endl;
+    // std::cout << "mDepthMapFactor: " << mDepthMapFactor << std::endl;
 
     // for(int i=0; i<10; i++) {
     //     for(int j=0; j<10; j++) 
@@ -733,6 +733,8 @@ void Tracking::CheckReplacedInLastFrame() {
 }
 
 bool Tracking::TrackReferenceKeyFrame() {
+    std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << std::endl;
+
     // Compute Bag of Words vector
     mCurrentFrame.ComputeBoW();
 
@@ -750,10 +752,10 @@ bool Tracking::TrackReferenceKeyFrame() {
 #endif
 
     auto t2=std::chrono::steady_clock::now();
-    double dr_ms=std::chrono::duration<double,std::milli>(t2-t1).count();
-    std::cout << std::setiosflags(ios::fixed) << mCurrentFrame.mTimeStamp << ", " << __FUNCTION__ << ": "
-              << "SearchByBoW (" << mpReferenceKF->N << ", " << mCurrentFrame.N << ", " << nmatches << ") " 
-              << dr_ms << std::endl;
+    // double dr_ms=std::chrono::duration<double,std::milli>(t2-t1).count();
+    // std::cout << std::setiosflags(ios::fixed) << mCurrentFrame.mTimeStamp << ", " << __FUNCTION__ << ": "
+    //           << "SearchByBoW (" << mpReferenceKF->N << ", " << mCurrentFrame.N << ", " << nmatches << ") " 
+    //           << dr_ms << std::endl;
 
     if (nmatches < 15)
         return false;
@@ -842,6 +844,8 @@ void Tracking::UpdateLastFrame() {
 }
 
 bool Tracking::TrackWithMotionModel() {
+    // std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << std::endl;
+
     ORBmatcher matcher(0.9, true);
 
     // Update last frame pose according to its reference keyframe

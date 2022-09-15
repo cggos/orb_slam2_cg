@@ -280,9 +280,9 @@ void LocalMapping::CreateNewMapPoints()
 
         auto t2=std::chrono::steady_clock::now();
         double dr_ms=std::chrono::duration<double,std::milli>(t2-t1).count();
-        std::cout << std::setiosflags(ios::fixed) << mpCurrentKeyFrame->mTimeStamp << ", " << __FUNCTION__ << ": "
-                << "SearchForTriangulation (" << pKF2->N << ", " << mpCurrentKeyFrame->N << ", " << nm << ") " 
-                << dr_ms << std::endl;
+        // std::cout << std::setiosflags(ios::fixed) << mpCurrentKeyFrame->mTimeStamp << ", " << __FUNCTION__ << ": "
+        //         << "SearchForTriangulation (" << pKF2->N << ", " << mpCurrentKeyFrame->N << ", " << nm << ") " 
+        //         << dr_ms << std::endl;
 
         cv::Mat Rcw2 = pKF2->GetRotation();
         cv::Mat Rwc2 = Rcw2.t();
@@ -466,6 +466,10 @@ void LocalMapping::CreateNewMapPoints()
             nnew++;
         }
 
+        // std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": " 
+        //           << "vMatchedIndices: " << vMatchedIndices.size()
+        //           << ", vMatchedIndicesFisheye: " << vMatchedIndicesFisheye.size() << std::endl;
+
         const int nmatches_fisheye = vMatchedIndicesFisheye.size();
         if(nmatches_fisheye>0) {
             const cv::Mat Rc0c1 = mpCurrentKeyFrame->mfeT.rowRange(0, 3).colRange(0, 3);
@@ -510,8 +514,7 @@ void LocalMapping::CreateNewMapPoints()
                 const float cosParallaxRays = ray1.dot(ray2)/(cv::norm(ray1)*cv::norm(ray2));
                     
                 cv::Mat x3D;
-                if(cosParallaxRays>0 && cosParallaxRays<0.998)
-                {
+                if(cosParallaxRays>0 && cosParallaxRays<0.998) {
                     cv::Mat A(4,4,CV_32F);
                     A.row(0) = xn1.x*T1c1w.row(2)-T1c1w.row(0);
                     A.row(1) = xn1.y*T1c1w.row(2)-T1c1w.row(1);
@@ -526,7 +529,7 @@ void LocalMapping::CreateNewMapPoints()
                         continue;
                     // Euclidean coordinates
                     x3D = x3D.rowRange(0,3)/x3D.at<float>(3);
-                }
+                } else continue;
 
                 cv::Mat x3Dt = x3D.t();
 

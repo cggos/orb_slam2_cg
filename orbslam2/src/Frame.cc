@@ -44,11 +44,16 @@ Frame::Frame(const Frame &frame)
       mTimeStamp(frame.mTimeStamp), mK(frame.mK.clone()), mDistCoef(frame.mDistCoef.clone()), mbf(frame.mbf), mb(frame.mb), mThDepth(frame.mThDepth), 
       N(frame.N), mvKeys(frame.mvKeys), mvKeysRight(frame.mvKeysRight), mvKeysUn(frame.mvKeysUn), mvuRight(frame.mvuRight), mvDepth(frame.mvDepth), 
       mBowVec(frame.mBowVec), mFeatVec(frame.mFeatVec), mDescriptors(frame.mDescriptors.clone()), mDescriptorsRight(frame.mDescriptorsRight.clone()), 
+      N_Fisheye(frame.N_Fisheye), mvKeysFisheye(frame.mvKeysFisheye),
       mBowVecFisheye(frame.mBowVecFisheye), mFeatVecFisheye(frame.mFeatVecFisheye), mDescriptorsFisheye(frame.mDescriptorsFisheye.clone()),
       mvpMapPoints(frame.mvpMapPoints), mvbOutlier(frame.mvbOutlier), mnId(frame.mnId), mpReferenceKF(frame.mpReferenceKF),
       mnScaleLevels(frame.mnScaleLevels), mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor),
       mvScaleFactors(frame.mvScaleFactors), mvInvScaleFactors(frame.mvInvScaleFactors),
-      mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2) {
+      mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2), 
+      mnScaleLevelsFisheye(frame.mnScaleLevelsFisheye), mfScaleFactorFisheye(frame.mfScaleFactorFisheye), mfLogScaleFactorFisheye(frame.mfLogScaleFactorFisheye),
+      mvScaleFactorsFisheye(frame.mvScaleFactorsFisheye), mvInvScaleFactorsFisheye(frame.mvInvScaleFactorsFisheye),
+      mvLevelSigma2Fisheye(frame.mvLevelSigma2Fisheye), mvInvLevelSigma2Fisheye(frame.mvInvLevelSigma2Fisheye) 
+      {
     for (int i = 0; i < FRAME_GRID_COLS; i++)
         for (int j = 0; j < FRAME_GRID_ROWS; j++)
             mGrid[i][j] = frame.mGrid[i][j];
@@ -133,6 +138,14 @@ Frame::Frame(
     mvInvScaleFactors = mpORBextractorLeft->GetInverseScaleFactors();
     mvLevelSigma2 = mpORBextractorLeft->GetScaleSigmaSquares();
     mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
+    
+    mnScaleLevelsFisheye = mpORBextractorFisheye->GetLevels();
+    mfScaleFactorFisheye = mpORBextractorFisheye->GetScaleFactor();
+    mfLogScaleFactorFisheye = log(mfScaleFactorFisheye);
+    mvScaleFactorsFisheye = mpORBextractorFisheye->GetScaleFactors();
+    mvInvScaleFactorsFisheye = mpORBextractorFisheye->GetInverseScaleFactors();
+    mvLevelSigma2Fisheye = mpORBextractorFisheye->GetScaleSigmaSquares();
+    mvInvLevelSigma2Fisheye = mpORBextractorFisheye->GetInverseScaleSigmaSquares();
 
     // ORB extraction
     // ExtractORB(0, imGray);
@@ -141,6 +154,8 @@ Frame::Frame(
 
     N = mvKeys.size();
     N_Fisheye = mvKeysFisheye.size();
+    
+    // std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": N_Fisheye: " << N_Fisheye << std::endl;
 
     if (mvKeys.empty())
         return;
@@ -173,6 +188,7 @@ Frame::Frame(
     // 3. split kps in fisheye into 2 parts
 
     // draw
+#if 0    
     {
       float s = 0.5;
       cv::Size sz = cv::Size(imGray.cols*s, imGray.rows*s);
@@ -204,6 +220,7 @@ Frame::Frame(
       cv::imshow("left--fisheye", img_out);
     //   cv::waitKey(0);
     }
+#endif
 
     mvpMapPoints = vector<MapPoint *>(N + N_Fisheye, static_cast<MapPoint *>(NULL));
     mvbOutlier = vector<bool>(N + N_Fisheye, false);
@@ -364,7 +381,7 @@ void Frame::AssignFeaturesToGrid() {
         for (unsigned int j = 0; j < FRAME_GRID_RCS_FE; j++)
             mGridFisheye[i][j].reserve(nReserve);
     
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N_Fisheye; i++) {
         const cv::KeyPoint &kp = mvKeysFisheye[i];
         int nGridPosX, nGridPosY;
         if (PosInGrid(kp, nGridPosX, nGridPosY, true))
@@ -392,41 +409,69 @@ void Frame::UpdatePoseMatrices() {
 }
 
 bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit) {
-    // TODO
-    if(pMP->is_fisheye_) {
-        pMP->mbTrackInView = true;
-        return true;
-    }
-
     pMP->mbTrackInView = false;
 
     // 3D in absolute coordinates
     cv::Mat P = pMP->GetWorldPos();
 
-    // 3D in camera coordinates
-    const cv::Mat Pc = mRcw * P + mtcw;
-    const float &PcX = Pc.at<float>(0);
-    const float &PcY = Pc.at<float>(1);
-    const float &PcZ = Pc.at<float>(2);
+    cv::Mat ow = mOw;
+    float invz, u, v;
+    if(!pMP->is_fisheye_) {
+        // 3D in camera coordinates
+        const cv::Mat Pc = mRcw * P + mtcw;
+        const float &PcX = Pc.at<float>(0);
+        const float &PcY = Pc.at<float>(1);
+        const float &PcZ = Pc.at<float>(2);
 
-    // Check positive depth
-    if (PcZ < 0.0f)
-        return false;
+        // Check positive depth
+        if (PcZ < 0.0f)
+            return false;
 
-    // Project in image and check it is not outside
-    const float invz = 1.0f / PcZ;
-    const float u = fx * PcX * invz + cx;
-    const float v = fy * PcY * invz + cy;
+        // Project in image and check it is not outside
+        invz = 1.0f / PcZ;
+        u = fx * PcX * invz + cx;
+        v = fy * PcY * invz + cy;
 
-    if (u < mnMinX || u > mnMaxX)
-        return false;
-    if (v < mnMinY || v > mnMaxY)
-        return false;
+        if (u < mnMinX || u > mnMaxX)
+            return false;
+        if (v < mnMinY || v > mnMaxY)
+            return false;
+    } else {
+        const cv::Mat Rc0c1 = mfeT.rowRange(0, 3).colRange(0, 3);
+        const cv::Mat tc0c1 = mfeT.rowRange(0, 3).col(3);
+        const cv::Mat Rc1c0 =  Rc0c1.t();
+        const cv::Mat tc1c0 = -Rc1c0 * tc0c1;
+
+        cv::Mat Rc1w = Rc1c0 * mRcw;
+        cv::Mat tc1w = Rc1c0 * mtcw + tc1c0;
+
+        ow = -Rc1w.t() * tc1w;
+
+        const cv::Mat Pc = Rc1w * P + tc1w;
+
+        Eigen::Vector3f vPc;
+        vPc[0] = Pc.at<float>(0);
+        vPc[1] = Pc.at<float>(1);
+        vPc[2] = Pc.at<float>(2);
+
+        // Check positive depth
+        if (vPc[2]< 0.0f)
+            return false;
+
+        Eigen::Vector2f e2 = mpCameraFE->project(vPc);
+        u = e2.x();
+        v = e2.y();
+
+        if (u < mnMinXFisheye || u > mnMaxXFisheye)
+            return false;
+        if (v < mnMinYFisheye || v > mnMaxYFisheye)
+            return false;
+    }
 
     // Check distance is in the scale invariance region of the MapPoint
     const float maxDistance = pMP->GetMaxDistanceInvariance();
     const float minDistance = pMP->GetMinDistanceInvariance();
-    const cv::Mat PO = P - mOw;
+    const cv::Mat PO = P - ow;
     const float dist = cv::norm(PO);
 
     if (dist < minDistance || dist > maxDistance)
