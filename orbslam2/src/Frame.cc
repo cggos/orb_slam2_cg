@@ -148,9 +148,10 @@ Frame::Frame(
     mvInvLevelSigma2Fisheye = mpORBextractorFisheye->GetInverseScaleSigmaSquares();
 
     // ORB extraction
-    // ExtractORB(0, imGray);
-    (*mpORBextractorLeft)(imGray, cv::Mat(), mvKeys, mDescriptors);
-    (*mpORBextractorFisheye)(imFisheye, cv::Mat(), mvKeysFisheye, mDescriptorsFisheye);
+    thread threadLeft(&Frame::ExtractORB, this, 0, imGray);
+    thread threadRight(&Frame::ExtractORB, this, 2, imFisheye);
+    threadLeft.join();
+    threadRight.join();
 
     N = mvKeys.size();
     N_Fisheye = mvKeysFisheye.size();
@@ -188,7 +189,7 @@ Frame::Frame(
     // 3. split kps in fisheye into 2 parts
 
     // draw
-#if 0    
+#if 1
     {
       float s = 0.5;
       cv::Size sz = cv::Size(imGray.cols*s, imGray.rows*s);
@@ -213,12 +214,13 @@ Frame::Frame(
       }
 
       cv::Mat img_out;
-      cv::drawMatches(img_left, keys0, img_fisheye, mvKeysFisheye, matches_cv_good, img_out, cv::Scalar::all(-1), cv::Scalar(255, 0, 0));
+      cv::drawMatches(img_left, keys0, img_fisheye, mvKeysFisheye, matches_cv_good, img_out, cv::Scalar::all(-1), cv::Scalar(0, 255, 0));
       std::stringstream ss0, ss1;
       ss0 << "(" << keys0.size() << " - " << mvKeysFisheye.size() << " : " << matches_cv_good.size() << " )";
       cv::putText(img_out, ss0.str(), cv::Point(20, 30), 0, 1, cv::Scalar(0, 0, 255), 3);
+      cv::resize(img_out, img_out, cv::Size(img_out.cols, img_out.rows)/2);
       cv::imshow("left--fisheye", img_out);
-    //   cv::waitKey(0);
+      cv::waitKey(10);
     }
 #endif
 
@@ -390,10 +392,19 @@ void Frame::AssignFeaturesToGrid() {
 }
 
 void Frame::ExtractORB(int flag, const cv::Mat &im) {
-    if (flag == 0)
+    switch (flag) {
+    case 0:
         (*mpORBextractorLeft)(im, cv::Mat(), mvKeys, mDescriptors);
-    else
+        break;
+    case 1:
         (*mpORBextractorRight)(im, cv::Mat(), mvKeysRight, mDescriptorsRight);
+        break;
+    case 2:
+        (*mpORBextractorFisheye)(im, cv::Mat(), mvKeysFisheye, mDescriptorsFisheye);
+        break;
+    default: 
+        break;
+    }
 }
 
 void Frame::SetPose(cv::Mat Tcw) {

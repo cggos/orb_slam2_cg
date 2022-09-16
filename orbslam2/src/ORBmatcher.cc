@@ -1052,7 +1052,7 @@ int ORBmatcher::SearchForTriangulationFisheye(KeyFrame *pKF1, KeyFrame *pKF2, ve
         vMatchedPairs.push_back(make_pair(i, vMatches12[i]));
     }
 
-    std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": " << "vMatchedPairs: " << vMatchedPairs.size() << std::endl;
+    // std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": " << "vMatchedPairs: " << vMatchedPairs.size() << std::endl;
 
     return nmatches;
 }

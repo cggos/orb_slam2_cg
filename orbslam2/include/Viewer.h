@@ -55,7 +55,7 @@ public:
     bool isStopped();
 
     void Release();
-
+    
 private:
 
     bool Stop();

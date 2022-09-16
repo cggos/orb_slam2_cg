@@ -124,6 +124,8 @@ public:
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
+    eSensor get_sensor() const { return mSensor; }
+
     // Map structure that stores the pointers to all KeyFrames and MapPoints.
     Map* mpMap;
 

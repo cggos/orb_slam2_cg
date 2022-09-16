@@ -88,7 +88,8 @@ void Viewer::Run()
     pangolin::OpenGlMatrix Twc;
     Twc.SetIdentity();
 
-    cv::namedWindow("ORB-SLAM2: Current Frame");
+    if(mpSystem->get_sensor() != System::RGBDFisheye)
+        cv::namedWindow("ORB-SLAM2: Current Frame");
 
     bool bFollow = true;
     bool bLocalizationMode = false;
@@ -138,8 +139,10 @@ void Viewer::Run()
         pangolin::FinishFrame();
 
         cv::Mat im = mpFrameDrawer->DrawFrame();
-        cv::imshow("ORB-SLAM2: Current Frame",im);
-        cv::waitKey(mT);
+        if(mpSystem->get_sensor() != System::RGBDFisheye) {
+            cv::imshow("ORB-SLAM2: Current Frame",im);
+            cv::waitKey(mT);
+        }
 
         if(menuReset)
         {
