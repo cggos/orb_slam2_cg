@@ -25,6 +25,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
+#include "ThreadPool.h"
 #include "Frame.h"
 #include "FrameDrawer.h"
 #include "Initializer.h"
@@ -89,6 +90,17 @@ class Tracking {
     // Current Frame
     Frame mCurrentFrame;
     cv::Mat mImGray;
+
+    // ThreadPool
+    Frame mPrepareFrame;
+    cv::Mat mImGrayPrepare;
+    cv::Mat mImDepthPrepare;
+    double mTimestampPrepare;
+    ThreadPool mPrepareThreadPool;
+    std::mutex mPrepareMtx;
+    std::future<void> mPrepareResult;
+    std::atomic<bool> mPrepared;
+	float mTdPrepare;
 
     // Initialization Variables (Monocular)
     std::vector<int> mvIniLastMatches;

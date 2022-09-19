@@ -37,7 +37,11 @@ using namespace std;
 
 namespace ORB_SLAM2 {
 
-Tracking::Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap, KeyFrameDatabase* pKFDB, const string& strSettingPath, const int sensor) : mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc), mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0) {
+Tracking::Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap, KeyFrameDatabase* pKFDB, const string& strSettingPath, const int sensor) 
+    : mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), 
+      mpORBVocabulary(pVoc), mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), 
+      mpViewer(NULL), mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0), 
+      mPrepareThreadPool(1, true) {
     // Load camera parameters from settings file
 
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
@@ -279,7 +283,32 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat& imRGB, const cv::Mat& imD, const 
     // }
     // std::cout << std::endl;
 
-    if(mSensor == System::RGBD)
+    // ThreadPool
+    bool use_threadpool = true;
+    if(use_threadpool && mSensor == System::RGBD) 
+    {
+        {
+            //等待线程池中的上一帧完成特征点提取.
+            if (mPrepareResult.valid()) mPrepareResult.get();
+            std::lock_guard<mutex> lock(mPrepareMtx);
+            mCurrentFrame = Frame(mPrepareFrame);
+            mImGrayPrepare = mImGray.clone();
+            mImDepthPrepare = imDepth.clone();
+            mTimestampPrepare = timestamp;
+        }
+        mPrepareResult = mPrepareThreadPool.enqueue([&] {
+            std::lock_guard<mutex> lock(mPrepareMtx);
+            if (!mImGrayPrepare.empty() && !mImDepthPrepare.empty()) {
+                if (mSensor == System::RGBD) {
+                    mPrepareFrame = Frame(mImGrayPrepare, mImDepthPrepare, mTimestampPrepare, mpORBextractorLeft, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth);
+                    // mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth);
+                }                        
+                mPrepared = true;
+            }
+        });
+        if (!mPrepared) return mCurrentFrame.mTcw.clone();
+    }
+    if(!use_threadpool && mSensor == System::RGBD)
         mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth);
     
     if(mSensor == System::RGBDFisheye)
