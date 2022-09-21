@@ -219,89 +219,89 @@ namespace ORB_SLAM2 {
         return this->TriangulateMatches(pCamera2,kp1,kp2,R12,t12,sigmaLevel,unc,p3D) > 0.0001f;
     }
 
-    bool KannalaBrandt8::matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
-                                             Sophus::SE3f& Tcw1, Sophus::SE3f& Tcw2,
-                                             const float sigmaLevel1, const float sigmaLevel2,
-                                             Eigen::Vector3f& x3Dtriangulated){
-        Eigen::Matrix<float,3,4> eigTcw1 = Tcw1.matrix3x4();
-        Eigen::Matrix3f Rcw1 = eigTcw1.block<3,3>(0,0);
-        Eigen::Matrix3f Rwc1 = Rcw1.transpose();
-        Eigen::Matrix<float,3,4> eigTcw2 = Tcw2.matrix3x4();
-        Eigen::Matrix3f Rcw2 = eigTcw2.block<3,3>(0,0);
-        Eigen::Matrix3f Rwc2 = Rcw2.transpose();
+    // bool KannalaBrandt8::matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
+    //                                          Sophus::SE3f& Tcw1, Sophus::SE3f& Tcw2,
+    //                                          const float sigmaLevel1, const float sigmaLevel2,
+    //                                          Eigen::Vector3f& x3Dtriangulated){
+    //     Eigen::Matrix<float,3,4> eigTcw1 = Tcw1.matrix3x4();
+    //     Eigen::Matrix3f Rcw1 = eigTcw1.block<3,3>(0,0);
+    //     Eigen::Matrix3f Rwc1 = Rcw1.transpose();
+    //     Eigen::Matrix<float,3,4> eigTcw2 = Tcw2.matrix3x4();
+    //     Eigen::Matrix3f Rcw2 = eigTcw2.block<3,3>(0,0);
+    //     Eigen::Matrix3f Rwc2 = Rcw2.transpose();
 
-        cv::Point3f ray1c = this->unproject(kp1.pt);
-        cv::Point3f ray2c = pOther->unproject(kp2.pt);
+    //     cv::Point3f ray1c = this->unproject(kp1.pt);
+    //     cv::Point3f ray2c = pOther->unproject(kp2.pt);
 
-        Eigen::Vector3f r1(ray1c.x, ray1c.y, ray1c.z);
-        Eigen::Vector3f r2(ray2c.x, ray2c.y, ray2c.z);
+    //     Eigen::Vector3f r1(ray1c.x, ray1c.y, ray1c.z);
+    //     Eigen::Vector3f r2(ray2c.x, ray2c.y, ray2c.z);
 
-        //Check parallax between rays
-        Eigen::Vector3f ray1 = Rwc1 * r1;
-        Eigen::Vector3f ray2 = Rwc2 * r2;
+    //     //Check parallax between rays
+    //     Eigen::Vector3f ray1 = Rwc1 * r1;
+    //     Eigen::Vector3f ray2 = Rwc2 * r2;
 
-        const float cosParallaxRays = ray1.dot(ray2)/(ray1.norm() * ray2.norm());
+    //     const float cosParallaxRays = ray1.dot(ray2)/(ray1.norm() * ray2.norm());
 
-        //If parallax is lower than 0.9998, reject this match
-        if(cosParallaxRays > 0.9998){
-            return false;
-        }
+    //     //If parallax is lower than 0.9998, reject this match
+    //     if(cosParallaxRays > 0.9998){
+    //         return false;
+    //     }
 
-        //Parallax is good, so we try to triangulate
-        cv::Point2f p11,p22;
+    //     //Parallax is good, so we try to triangulate
+    //     cv::Point2f p11,p22;
 
-        p11.x = ray1c.x;
-        p11.y = ray1c.y;
+    //     p11.x = ray1c.x;
+    //     p11.y = ray1c.y;
 
-        p22.x = ray2c.x;
-        p22.y = ray2c.y;
+    //     p22.x = ray2c.x;
+    //     p22.y = ray2c.y;
 
-        Eigen::Vector3f x3D;
+    //     Eigen::Vector3f x3D;
 
-        Triangulate(p11,p22,eigTcw1,eigTcw2,x3D);
+    //     Triangulate(p11,p22,eigTcw1,eigTcw2,x3D);
 
-        //Check triangulation in front of cameras
-        float z1 = Rcw1.row(2).dot(x3D)+Tcw1.translation()(2);
-        if(z1<=0){  //Point is not in front of the first camera
-            return false;
-        }
+    //     //Check triangulation in front of cameras
+    //     float z1 = Rcw1.row(2).dot(x3D)+Tcw1.translation()(2);
+    //     if(z1<=0){  //Point is not in front of the first camera
+    //         return false;
+    //     }
 
 
-        float z2 = Rcw2.row(2).dot(x3D)+Tcw2.translation()(2);
-        if(z2<=0){ //Point is not in front of the first camera
-            return false;
-        }
+    //     float z2 = Rcw2.row(2).dot(x3D)+Tcw2.translation()(2);
+    //     if(z2<=0){ //Point is not in front of the first camera
+    //         return false;
+    //     }
 
-        //Check reprojection error in first keyframe
-        //  -Transform point into camera reference system
-        Eigen::Vector3f x3D1 = Rcw1 * x3D + Tcw1.translation();
-        Eigen::Vector2f uv1 = this->project(x3D1);
+    //     //Check reprojection error in first keyframe
+    //     //  -Transform point into camera reference system
+    //     Eigen::Vector3f x3D1 = Rcw1 * x3D + Tcw1.translation();
+    //     Eigen::Vector2f uv1 = this->project(x3D1);
 
-        float errX1 = uv1(0) - kp1.pt.x;
-        float errY1 = uv1(1) - kp1.pt.y;
+    //     float errX1 = uv1(0) - kp1.pt.x;
+    //     float errY1 = uv1(1) - kp1.pt.y;
 
-        if((errX1*errX1+errY1*errY1)>5.991*sigmaLevel1){   //Reprojection error is high
-            return false;
-        }
+    //     if((errX1*errX1+errY1*errY1)>5.991*sigmaLevel1){   //Reprojection error is high
+    //         return false;
+    //     }
 
-        //Check reprojection error in second keyframe;
-        //  -Transform point into camera reference system
-        Eigen::Vector3f x3D2 = Rcw2 * x3D + Tcw2.translation(); // avoid using q
-        Eigen::Vector2f uv2 = pOther->project(x3D2);
+    //     //Check reprojection error in second keyframe;
+    //     //  -Transform point into camera reference system
+    //     Eigen::Vector3f x3D2 = Rcw2 * x3D + Tcw2.translation(); // avoid using q
+    //     Eigen::Vector2f uv2 = pOther->project(x3D2);
 
-        float errX2 = uv2(0) - kp2.pt.x;
-        float errY2 = uv2(1) - kp2.pt.y;
+    //     float errX2 = uv2(0) - kp2.pt.x;
+    //     float errY2 = uv2(1) - kp2.pt.y;
 
-        if((errX2*errX2+errY2*errY2)>5.991*sigmaLevel2){   //Reprojection error is high
-            return false;
-        }
+    //     if((errX2*errX2+errY2*errY2)>5.991*sigmaLevel2){   //Reprojection error is high
+    //         return false;
+    //     }
 
-        //Since parallax is big enough and reprojection errors are low, this pair of points
-        //can be considered as a match
-        x3Dtriangulated = x3D;
+    //     //Since parallax is big enough and reprojection errors are low, this pair of points
+    //     //can be considered as a match
+    //     x3Dtriangulated = x3D;
 
-        return true;
-    }
+    //     return true;
+    // }
 
     float KannalaBrandt8::TriangulateMatches(GeometricCamera *pCamera2, const cv::KeyPoint &kp1, const cv::KeyPoint &kp2, const Eigen::Matrix3f& R12, const Eigen::Vector3f& t12, const float sigmaLevel, const float unc, Eigen::Vector3f& p3D) {
 

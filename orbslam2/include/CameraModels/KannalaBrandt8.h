@@ -87,10 +87,10 @@ namespace ORB_SLAM2 {
 
         std::vector<int> mvLappingArea;
 
-        bool matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
-                                 Sophus::SE3f& Tcw1, Sophus::SE3f& Tcw2,
-                                 const float sigmaLevel1, const float sigmaLevel2,
-                                 Eigen::Vector3f& x3Dtriangulated);
+        // bool matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
+        //                          Sophus::SE3f& Tcw1, Sophus::SE3f& Tcw2,
+        //                          const float sigmaLevel1, const float sigmaLevel2,
+        //                          Eigen::Vector3f& x3Dtriangulated);
 
         friend std::ostream& operator<<(std::ostream& os, const KannalaBrandt8& kb);
         friend std::istream& operator>>(std::istream& is, KannalaBrandt8& kb);

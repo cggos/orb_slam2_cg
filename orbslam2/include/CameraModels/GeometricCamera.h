@@ -32,7 +32,7 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/assume_abstract.hpp>
 
-#include <sophus/se3.hpp>
+// #include <sophus/se3.hpp>
 
 #include <Eigen/Geometry>
 
@@ -83,10 +83,10 @@ namespace ORB_SLAM2 {
 
         size_t size(){return mvParameters.size();}
 
-        virtual bool matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
-                                 Sophus::SE3f& Tcw1, Sophus::SE3f& Tcw2,
-                                 const float sigmaLevel1, const float sigmaLevel2,
-                                 Eigen::Vector3f& x3Dtriangulated) = 0;
+        // virtual bool matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
+        //                          Sophus::SE3f& Tcw1, Sophus::SE3f& Tcw2,
+        //                          const float sigmaLevel1, const float sigmaLevel2,
+        //                          Eigen::Vector3f& x3Dtriangulated) = 0;
 
         unsigned int GetId() { return mnId; }
 
