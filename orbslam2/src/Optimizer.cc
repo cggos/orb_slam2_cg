@@ -368,8 +368,9 @@ int Optimizer::PoseOptimization(Frame *pFrame)
                 vnIndexEdgeStereo.push_back(i);
             }
 
+            // [CGGOS] TODO
             // RGBCam--Fisheye Common Observation
-            if(!pFrame->mvKeysIdxFisheyeStereo.empty()) {
+            if(false && !pFrame->mvKeysIdxFisheyeStereo.empty()) {
                 int idx_fe = pFrame->mvKeysIdxFisheyeStereo[i];
                 if(idx_fe>=0) {
                     Eigen::Matrix<double,2,1> obs;
@@ -527,6 +528,8 @@ int Optimizer::PoseOptimization(Frame *pFrame)
             {
                 e->computeError();
             }
+        
+            std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": vpEdgesFEStereo chi2: " << e->chi2() << std::endl;
 
             const float chi2 = e->chi2();
 
@@ -810,8 +813,9 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
                         vpMapPointEdgeStereo.push_back(pMP);
                     }
 
+                    // [CGGOS] TODO
                     // RGBCam--Fisheye Common Observation
-                    if(!pKFi->mvKeysIdxFisheyeStereo.empty()) {
+                    if(false && !pKFi->mvKeysIdxFisheyeStereo.empty()) {
                         int idx_fe = pKFi->mvKeysIdxFisheyeStereo[mit->second];
                         if(idx_fe>=0) {
                             Eigen::Matrix<double,2,1> obs;
@@ -824,7 +828,10 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
                             e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKFi->mnId)));
                             e->setMeasurement(obs);
 
-                            const float invSigma2 = pKFi->mvInvLevelSigma2Fisheye[kpt.octave];
+                            // const float invSigma2 = pKFi->mvInvLevelSigma2Fisheye[kpt.octave];
+                            float invSigma2 = 1.0;
+                            if(kpt.octave>=0 && kpt.octave<8)
+                                invSigma2 = pKFi->mvInvLevelSigma2Fisheye[kpt.octave];
                             e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
 
                             g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
@@ -951,7 +958,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         if(pMP->isBad())
             continue;
         
-        std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": vpEdgesFEStereo chi2: " << e->chi2() << std::endl;
+        // std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": vpEdgesFEStereo chi2: " << e->chi2() << std::endl;
 
         if(e->chi2()>5.991 || !e->isDepthPositive())
         {
@@ -1027,6 +1034,8 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 
         if(pMP->isBad())
             continue;
+
+        std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": vpEdgesFEStereo chi2: " << e->chi2() << std::endl;
 
         if(e->chi2()>5.991 || !e->isDepthPositive())
         {
