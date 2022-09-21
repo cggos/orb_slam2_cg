@@ -2046,6 +2046,8 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, KeyFrame *pKF, const set
         MapPoint *pMP = vpMPs[i];
 
         if (pMP) {
+            if(pMP->is_fisheye_) continue;
+
             if (!pMP->isBad() && !sAlreadyFound.count(pMP)) {
                 //Project
                 cv::Mat x3Dw = pMP->GetWorldPos();

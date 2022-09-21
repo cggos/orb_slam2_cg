@@ -1309,6 +1309,7 @@ bool Tracking::Relocalization() {
                 vbDiscarded[i] = true;
                 continue;
             } else {
+                vvpMapPointMatches[i].resize(mCurrentFrame.N); // remove fisheye
                 PnPsolver* pSolver = new PnPsolver(mCurrentFrame, vvpMapPointMatches[i]);
                 pSolver->SetRansacParameters(0.99, 10, 300, 4, 0.5, 5.991);
                 vpPnPsolvers[i] = pSolver;
