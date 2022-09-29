@@ -370,7 +370,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
 
             // [CGGOS] TODO
             // RGBCam--Fisheye Common Observation
-            if(false && !pFrame->mvKeysIdxFisheyeStereo.empty()) {
+            if(!pFrame->mvKeysIdxFisheyeStereo.empty()) {
                 int idx_fe = pFrame->mvKeysIdxFisheyeStereo[i];
                 if(idx_fe>=0) {
                     Eigen::Matrix<double,2,1> obs;
@@ -528,12 +528,10 @@ int Optimizer::PoseOptimization(Frame *pFrame)
             {
                 e->computeError();
             }
-        
-            std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": vpEdgesFEStereo chi2: " << e->chi2() << std::endl;
 
             const float chi2 = e->chi2();
 
-            if(chi2>chi2Mono[it])
+            if(chi2> factor_fe * chi2Mono[it])
             {                
                 pFrame->mvbOutlier[idx]=true;
                 e->setLevel(1);
@@ -543,6 +541,8 @@ int Optimizer::PoseOptimization(Frame *pFrame)
             {
                 pFrame->mvbOutlier[idx]=false;
                 e->setLevel(0);
+                
+                std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": vpEdgesFEStereo chi2: " << e->chi2() << std::endl;
             }
 
             if(it==2)
@@ -815,7 +815,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 
                     // [CGGOS] TODO
                     // RGBCam--Fisheye Common Observation
-                    if(false && !pKFi->mvKeysIdxFisheyeStereo.empty()) {
+                    if(!pKFi->mvKeysIdxFisheyeStereo.empty()) {
                         int idx_fe = pKFi->mvKeysIdxFisheyeStereo[mit->second];
                         if(idx_fe>=0) {
                             Eigen::Matrix<double,2,1> obs;
@@ -960,7 +960,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         
         // std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": vpEdgesFEStereo chi2: " << e->chi2() << std::endl;
 
-        if(e->chi2()>5.991 || !e->isDepthPositive())
+        if(e->chi2()> factor_fe * 5.991 || !e->isDepthPositive())
         {
             e->setLevel(1); // level 1: 野值边，0：内点
         }
@@ -976,7 +976,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         if(pMP->isBad())
             continue;
     
-        std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": vpEdgesFE chi2: " << e->chi2() << std::endl;
+        // std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": vpEdgesFE chi2: " << e->chi2() << std::endl;
 
         if(e->chi2()>5.991 || !e->isDepthPositive())
         {
@@ -1035,9 +1035,9 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         if(pMP->isBad())
             continue;
 
-        std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": vpEdgesFEStereo chi2: " << e->chi2() << std::endl;
+        // std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": vpEdgesFEStereo chi2: " << e->chi2() << std::endl;
 
-        if(e->chi2()>5.991 || !e->isDepthPositive())
+        if(e->chi2()>factor_fe * 5.991 || !e->isDepthPositive())
         {
             KeyFrame* pKFi = vpEdgeKFFisheyeStereo[i];
             vToErase.push_back(make_pair(pKFi,pMP));

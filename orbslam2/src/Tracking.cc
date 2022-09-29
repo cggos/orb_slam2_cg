@@ -370,6 +370,8 @@ void Tracking::Track() {
 
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
         if (!mbOnlyTracking) {
+            std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << std::endl;
+
             // Local Mapping is activated. This is the normal behaviour, unless
             // you explicitly activate the "only tracking" mode.
 
@@ -441,6 +443,8 @@ void Tracking::Track() {
                 }
             }
         }
+        
+        std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": mState " << mState << std::endl;
 
         mCurrentFrame.mpReferenceKF = mpReferenceKF;
 
@@ -466,6 +470,8 @@ void Tracking::Track() {
 
         // If tracking were good, check if we insert a keyframe
         if (bOK) {
+            std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << std::endl;
+
             // Update motion model
             if (!mLastFrame.mTcw.empty()) {
                 cv::Mat LastTwc = cv::Mat::eye(4, 4, CV_32F);
@@ -785,6 +791,7 @@ bool Tracking::TrackReferenceKeyFrame() {
     // std::cout << std::setiosflags(ios::fixed) << mCurrentFrame.mTimeStamp << ", " << __FUNCTION__ << ": "
     //           << "SearchByBoW (" << mpReferenceKF->N << ", " << mCurrentFrame.N << ", " << nmatches << ") " 
     //           << dr_ms << std::endl;
+    std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": nmatches " << nmatches << std::endl;
 
     if (nmatches < 15)
         return false;
@@ -898,6 +905,8 @@ bool Tracking::TrackWithMotionModel() {
         fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(), static_cast<MapPoint*>(NULL));
         nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, 2 * th, mSensor == System::MONOCULAR);
     }
+        
+    std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << ": nmatches " << nmatches << std::endl;
 
     if (nmatches < 20)
         return false;
@@ -933,6 +942,8 @@ bool Tracking::TrackWithMotionModel() {
 bool Tracking::TrackLocalMap() {
     // We have an estimation of the camera pose and some map points tracked in the frame.
     // We retrieve the local map and try to find matches to points in the local map.
+
+    std::cout << "[CGGOS] " << __FUNCTION__ << " " << __LINE__ << std::endl;
 
     UpdateLocalMap();
 

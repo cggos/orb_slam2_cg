@@ -15,10 +15,10 @@ Camera.cy: 236.14259687906255
 
 
 # distortion parameters
-Camera.k1: 0.0
-Camera.k2: 0.0
-Camera.p1: 0.0
-Camera.p2: 0.0
+Camera.k1: 0.13030943011119098
+Camera.k2: -0.2888420975392503
+Camera.p1: 0.0002752540001609054
+Camera.p2: 0.002338715581231416
 
 # Camera resolution
 Camera.width: 640

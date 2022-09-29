@@ -44,7 +44,7 @@ Frame::Frame(const Frame &frame)
       mTimeStamp(frame.mTimeStamp), mK(frame.mK.clone()), mDistCoef(frame.mDistCoef.clone()), mbf(frame.mbf), mb(frame.mb), mThDepth(frame.mThDepth), 
       N(frame.N), mvKeys(frame.mvKeys), mvKeysRight(frame.mvKeysRight), mvKeysUn(frame.mvKeysUn), mvuRight(frame.mvuRight), mvDepth(frame.mvDepth), 
       mBowVec(frame.mBowVec), mFeatVec(frame.mFeatVec), mDescriptors(frame.mDescriptors.clone()), mDescriptorsRight(frame.mDescriptorsRight.clone()), 
-      N_Fisheye(frame.N_Fisheye), mvKeysFisheye(frame.mvKeysFisheye),
+      N_Fisheye(frame.N_Fisheye), mvKeysFisheye(frame.mvKeysFisheye), mfeT(frame.mfeT.clone()), mpCameraFE(frame.mpCameraFE),
       mBowVecFisheye(frame.mBowVecFisheye), mFeatVecFisheye(frame.mFeatVecFisheye), mDescriptorsFisheye(frame.mDescriptorsFisheye.clone()),
       mvpMapPoints(frame.mvpMapPoints), mvbOutlier(frame.mvbOutlier), mnId(frame.mnId), mpReferenceKF(frame.mpReferenceKF),
       mnScaleLevels(frame.mnScaleLevels), mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor),
@@ -180,6 +180,38 @@ Frame::Frame(
       for (int i = 0; i < matches_cv.size(); i++)
         if (matches_cv[i].distance <= max(2 * min_dist, 30.0)) matches_cv_good.push_back(matches_cv[i]);
     }
+
+    {
+        const cv::Mat Rc0c1 = mfeT.rowRange(0, 3).colRange(0, 3);
+        const cv::Mat tc0c1 = mfeT.rowRange(0, 3).col(3);
+        const cv::Mat Rc1c0 =  Rc0c1.t();
+        const cv::Mat tc1c0 = -Rc1c0 * tc0c1;
+        const cv::Matx33d t_c1c10_hat(
+            0.0, -tc1c0.at<double>(2, 0), tc1c0.at<double>(1, 0),
+            tc1c0.at<double>(2, 0), 0.0, -tc1c0.at<double>(0, 0),
+            -tc1c0.at<double>(1, 0), tc1c0.at<double>(0, 0), 0.0);
+
+        const cv::Matx33d matx_Rc1c0(Rc1c0);
+        const cv::Matx33d E = t_c1c10_hat * matx_Rc1c0;
+
+        for(std::vector<cv::DMatch>::iterator it = matches_cv_good.begin(); it != matches_cv_good.end();) {
+            int idx_rgb = it->queryIdx;
+            int idx_fe = it->trainIdx;
+            cv::Point2f pt0 = mvKeysUnNormal[idx_rgb].pt;
+            cv::Point3f pt1 = mpCameraFE->unproject(mvKeysFisheye[idx_fe].pt);
+            cv::Vec3d vec0(pt0.x, pt0.y, 1.0);
+            cv::Vec3d vec1(pt1.x, pt1.y, 1.0);
+            cv::Vec3d epipolar_line = E * vec0;
+            double error = fabs((vec1.t() * epipolar_line)[0]) / sqrt(epipolar_line[0] * epipolar_line[0] + epipolar_line[1] * epipolar_line[1]);
+            if(error > 30.0 / 300) {
+                it = matches_cv_good.erase(it);   
+            } else {
+                it++;
+            }
+            // std::cout << "error: " << error << std::endl;
+        }
+    }
+
     mvKeysIdxFisheyeStereo.resize(N, -1);
     for(const auto &match : matches_cv_good) mvKeysIdxFisheyeStereo[match.queryIdx] = match.trainIdx;
 
@@ -655,7 +687,10 @@ void Frame::UndistortKeyPoints() {
 
     // Undistort points
     mat = mat.reshape(2);
+    cv::Mat mat_normal = mat.clone();
+    cv::undistortPoints(mat_normal, mat_normal, mK, mDistCoef, cv::Mat());
     cv::undistortPoints(mat, mat, mK, mDistCoef, cv::Mat(), mK);
+    mat_normal = mat_normal.reshape(1);
     mat = mat.reshape(1);
 
     // Fill undistorted keypoint vector
@@ -665,6 +700,14 @@ void Frame::UndistortKeyPoints() {
         kp.pt.x = mat.at<float>(i, 0);
         kp.pt.y = mat.at<float>(i, 1);
         mvKeysUn[i] = kp;
+    }
+
+    mvKeysUnNormal.resize(N);
+    for (int i = 0; i < N; i++) {
+        cv::KeyPoint kpn = mvKeys[i];
+        kpn.pt.x = mat_normal.at<float>(i, 0);
+        kpn.pt.y = mat_normal.at<float>(i, 1);
+        mvKeysUnNormal[i] = kpn;
     }
 }
 
